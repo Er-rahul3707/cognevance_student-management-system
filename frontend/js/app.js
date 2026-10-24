@@ -1,31 +1,40 @@
-// Set API_BASE_URL in this file when hosting the frontend separately.
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8080/api';
+import { buildStudentsUrl, escapeHtml, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl } from './student-utils.mjs';
+
+const API_BASE_URL = normalizeApiBaseUrl(window.STUDENT_API_BASE_URL);
 const rows = document.getElementById('studentRows');
 const dialog = document.getElementById('studentDialog');
+const detailsDialog = document.getElementById('detailsDialog');
 const form = document.getElementById('studentForm');
 let students = [];
 let searchTimer;
+let latestLoad = 0;
 
 document.getElementById('today').textContent = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date());
 document.getElementById('addStudent').addEventListener('click', () => openForm());
 document.getElementById('closeDialog').addEventListener('click', closeForm);
 document.getElementById('cancelDialog').addEventListener('click', closeForm);
-document.getElementById('refreshButton').addEventListener('click', () => loadStudents());
+document.getElementById('refreshButton').addEventListener('click', () => loadStudents(document.getElementById('searchInput').value.trim()));
 document.getElementById('searchInput').addEventListener('input', () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => loadStudents(document.getElementById('searchInput').value.trim()), 250);
 });
 dialog.addEventListener('click', event => { if (event.target === dialog) closeForm(); });
+document.getElementById('closeDetails').addEventListener('click', () => detailsDialog.close());
+document.getElementById('closeDetailsFooter').addEventListener('click', () => detailsDialog.close());
+detailsDialog.addEventListener('click', event => { if (event.target === detailsDialog) detailsDialog.close(); });
 form.addEventListener('submit', saveStudent);
 loadStudents();
 
 async function loadStudents(query = '') {
+  const requestId = ++latestLoad;
   rows.innerHTML = '<tr><td colspan="6" class="loading-cell">Loading students…</td></tr>';
+  rows.setAttribute('aria-busy', 'true');
   try {
     const [response, allResponse] = await Promise.all([
-      fetch(`${API_BASE_URL}/students${query ? `?q=${encodeURIComponent(query)}` : ''}`),
-      query ? fetch(`${API_BASE_URL}/students`) : null
+      fetch(buildStudentsUrl(API_BASE_URL, query)),
+      query ? fetch(buildStudentsUrl(API_BASE_URL)) : null
     ]);
+    if (requestId !== latestLoad) return;
     if (!response.ok) throw await apiError(response);
     const visibleStudents = await response.json();
     if (allResponse) {
@@ -34,8 +43,10 @@ async function loadStudents(query = '') {
     } else students = visibleStudents;
     renderStudents(visibleStudents);
   } catch (error) {
+    if (requestId !== latestLoad) return;
     rows.innerHTML = `<tr><td colspan="6" class="empty-cell"><strong>Could not load students</strong><span>${escapeHtml(error.message)}. Check the API and database connection, then refresh.</span></td></tr>`;
-    updateStats([]);
+  } finally {
+    if (requestId === latestLoad) rows.setAttribute('aria-busy', 'false');
   }
 }
 
@@ -49,20 +60,17 @@ function renderStudents(list) {
     return;
   }
   rows.innerHTML = list.map(student => {
-    const initials = student.fullName.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+    const initials = getInitials(student.fullName);
     return `<tr><td><div class="student-cell"><span class="student-avatar">${escapeHtml(initials)}</span><span><span class="student-name">${escapeHtml(student.fullName)}</span><span class="student-email">${escapeHtml(student.email)}</span></span></div></td><td><span class="id-chip">STU-${String(student.id).padStart(4, '0')}</span></td><td><span class="course-label">${escapeHtml(student.course)}</span></td><td>${escapeHtml(student.phone || '—')}</td><td>${formatDate(student.enrollmentDate)}</td><td><div class="row-actions"><button class="row-button" data-action="view" data-id="${student.id}" aria-label="View ${escapeHtml(student.fullName)}">View</button><button class="row-button" data-action="edit" data-id="${student.id}" aria-label="Edit ${escapeHtml(student.fullName)}">Edit</button><button class="row-button delete" data-action="delete" data-id="${student.id}" aria-label="Delete ${escapeHtml(student.fullName)}">Delete</button></div></td></tr>`;
   }).join('');
   rows.querySelectorAll('button[data-action]').forEach(button => button.addEventListener('click', () => actOnStudent(button.dataset.action, Number(button.dataset.id))));
 }
 
 function updateStats(list) {
-  document.getElementById('totalCount').textContent = list.length;
-  document.getElementById('courseCount').textContent = new Set(list.map(student => student.course.toLowerCase())).size;
-  const now = new Date();
-  document.getElementById('newCount').textContent = list.filter(student => {
-    const date = new Date(`${student.enrollmentDate}T00:00:00`);
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  }).length;
+  const stats = getDashboardStats(list);
+  document.getElementById('totalCount').textContent = stats.total;
+  document.getElementById('courseCount').textContent = stats.courses;
+  document.getElementById('newCount').textContent = stats.newThisMonth;
 }
 
 async function actOnStudent(action, id) {
@@ -71,7 +79,7 @@ async function actOnStudent(action, id) {
     if (!response.ok) throw await apiError(response);
     const student = await response.json();
     if (action === 'view') {
-      toast(`${student.fullName} · ${student.email} · ${student.course}`);
+      showDetails(student);
     } else if (action === 'edit') openForm(student);
     else if (action === 'delete' && window.confirm(`Delete ${student.fullName}? This action cannot be undone.`)) {
       const deletion = await fetch(`${API_BASE_URL}/students/${id}`, { method: 'DELETE' });
@@ -80,6 +88,21 @@ async function actOnStudent(action, id) {
       await loadStudents(document.getElementById('searchInput').value.trim());
     }
   } catch (error) { toast(error.message, true); }
+}
+
+function showDetails(student) {
+  const values = {
+    detailId: `STU-${String(student.id).padStart(4, '0')}`,
+    detailName: student.fullName,
+    detailEmail: student.email,
+    detailPhone: student.phone || 'Not provided',
+    detailCourse: student.course,
+    detailEnrollmentDate: formatDate(student.enrollmentDate),
+    detailCreatedAt: student.createdAt ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(student.createdAt)) : '—'
+  };
+  for (const [id, value] of Object.entries(values)) document.getElementById(id).textContent = value;
+  detailsDialog.showModal();
+  document.getElementById('closeDetails').focus();
 }
 
 function openForm(student) {
@@ -123,8 +146,6 @@ async function apiError(response) {
   const fields = body.fieldErrors ? Object.entries(body.fieldErrors).map(([field, message]) => `${field}: ${message}`).join(' · ') : '';
   return new Error(fields || body.message || `Request failed (${response.status})`);
 }
-function formatDate(value) { return value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`)) : '—'; }
-function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]); }
 function toast(message, isError = false) {
   const element = document.createElement('div'); element.className = `toast${isError ? ' error' : ''}`;
   element.textContent = message; document.getElementById('toastRegion').append(element);

@@ -1,0 +1,8 @@
+{
+  "name": "cognevance-student-management-frontend",
+  "private": true,
+  "scripts": {
+    "check": "node --check js/app.js && node --check js/student-utils.mjs",
+    "test": "node --test js/student-utils.test.mjs"
+  }
+}

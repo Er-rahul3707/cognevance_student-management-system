@@ -8,7 +8,7 @@
 </head>
 <body>
   <aside class="sidebar" aria-label="Main navigation">
-    <a class="brand" href="#" aria-label="Cognevance home"><span class="brand-mark">C</span><span>cognevance<span class="brand-sub">EDUCATION</span></span></a>
+    <a class="brand" href="#students" aria-label="Cognevance home"><span class="brand-mark">C</span><span>cognevance<span class="brand-sub">EDUCATION</span></span></a>
     <div class="nav-label">WORKSPACE</div><a class="nav-item active" href="#students"><span class="nav-icon">▦</span>Students</a>
     <div class="sidebar-bottom"><span class="avatar">CT</span><span><strong>Cognevance Team</strong><small>Administrator</small></span><span class="dots">···</span></div>
   </aside>
@@ -24,7 +24,7 @@
       <section class="directory-card">
         <div class="directory-heading"><div><h2>All students <span class="count-pill" id="resultCount">0</span></h2><p>View and manage your student directory.</p></div></div>
         <div class="toolbar"><label class="search"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Search by name, email, course or ID…" aria-label="Search students"></label><button class="button button-outline" id="refreshButton" title="Refresh student list">↻ <span>Refresh</span></button></div>
-        <div class="table-wrap"><table><thead><tr><th>STUDENT</th><th>STUDENT ID</th><th>COURSE</th><th>PHONE</th><th>ENROLLED</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="studentRows"><tr><td colspan="6" class="loading-cell">Loading students…</td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>STUDENT</th><th>STUDENT ID</th><th>COURSE</th><th>PHONE</th><th>ENROLLED</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="studentRows" aria-busy="true"><tr><td colspan="6" class="loading-cell" role="status">Loading students…</td></tr></tbody></table></div>
         <div class="table-footer"><span id="tableSummary">Showing 0 students</span><span>Connected to student database</span></div>
       </section>
       <footer class="footer">© 2026 Cognevance Technologies <span>Student Management</span></footer>
@@ -37,6 +37,12 @@
     <label>Enrollment date <input required type="date" name="enrollmentDate" id="enrollmentDate"></label><div class="dialog-error" id="formError" role="alert"></div>
     <div class="dialog-actions"><button type="button" class="button button-outline" id="cancelDialog">Cancel</button><button class="button button-primary" id="saveButton" type="submit">Save student</button></div>
   </form></dialog>
+  <dialog id="detailsDialog" aria-labelledby="detailsTitle"><div class="details-panel"><div class="dialog-head"><div><div class="eyebrow">STUDENT PROFILE</div><h2 id="detailsTitle">Student details</h2><p>Complete enrollment record.</p></div><button type="button" class="icon-button" id="closeDetails" aria-label="Close student details">×</button></div>
+    <dl class="details-list"><div><dt>Student ID</dt><dd id="detailId"></dd></div><div><dt>Full name</dt><dd id="detailName"></dd></div><div><dt>Email address</dt><dd id="detailEmail"></dd></div><div><dt>Phone number</dt><dd id="detailPhone"></dd></div><div><dt>Course</dt><dd id="detailCourse"></dd></div><div><dt>Enrollment date</dt><dd id="detailEnrollmentDate"></dd></div><div><dt>Record created</dt><dd id="detailCreatedAt"></dd></div></dl>
+    <div class="dialog-actions"><button type="button" class="button button-outline" id="closeDetailsFooter">Close</button></div>
+  </div></dialog>
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
-  <script src="js/app.js" defer></script>
+  <!-- For a hosted API, set window.STUDENT_API_BASE_URL here before loading app.js. -->
+  <script>window.STUDENT_API_BASE_URL = window.STUDENT_API_BASE_URL || 'http://localhost:8080/api';</script>
+  <script type="module" src="js/app.js"></script>
 </body></html>

@@ -22,11 +22,27 @@ class StudentApiIntegrationTest {
         int id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
         mvc.perform(get("/api/students").param("q", "Asha")).andExpect(status().isOk()).andExpect(jsonPath("$[0].email").value("asha@example.com"));
         mvc.perform(get("/api/students/" + id)).andExpect(status().isOk()).andExpect(jsonPath("$.fullName").value("Asha Patel"));
-        String updated = valid.replace("Asha Patel", "Asha P.");
+        String updated = valid.replace("Asha Patel", "Asha P.").replace("asha@example.com", "ASHA@example.com");
         mvc.perform(put("/api/students/" + id).contentType(MediaType.APPLICATION_JSON).content(updated)).andExpect(status().isOk()).andExpect(jsonPath("$.fullName").value("Asha P."));
+        mvc.perform(get("/api/students/" + id)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value("asha@example.com"));
         mvc.perform(delete("/api/students/" + id)).andExpect(status().isNoContent());
         mvc.perform(get("/api/students/" + id)).andExpect(status().isNotFound());
     }
+
+    @Test void searchesByEmailCourseAndNumericId() throws Exception {
+        MvcResult created = mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(valid))
+                .andExpect(status().isCreated()).andReturn();
+        int id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+        mvc.perform(get("/api/students").param("q", "EXAMPLE.COM"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id));
+        mvc.perform(get("/api/students").param("q", "COMPUTER SCIENCE"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id));
+        mvc.perform(get("/api/students").param("q", String.valueOf(id)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id));
+        mvc.perform(get("/api/students").param("q", "no-match"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+    }
+
     @Test void rejectsInvalidAndDuplicateEmail() throws Exception {
         mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content("{\"fullName\":\"\"}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors.fullName").exists());
@@ -34,8 +50,25 @@ class StudentApiIntegrationTest {
         mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(valid.replace("asha@example.com", "ASHA@example.com")))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("A student with this email already exists"));
     }
+
+    @Test void reportsEmailPhoneAndEnrollmentValidationErrors() throws Exception {
+        String invalid = valid.replace("asha@example.com", "not-an-email")
+                .replace("+91 98765 43210", "phone-number")
+                .replace("2025-01-10", "2999-01-10");
+        mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(invalid))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.email").exists())
+                .andExpect(jsonPath("$.fieldErrors.phone").exists())
+                .andExpect(jsonPath("$.fieldErrors.enrollmentDate").exists());
+    }
+
     @Test void rejectsMalformedJsonWithBadRequest() throws Exception {
         mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content("{broken"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("Request body is missing or malformed"));
+    }
+
+    @Test void rejectsNonNumericIdsAsBadRequest() throws Exception {
+        mvc.perform(get("/api/students/not-a-number")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("A path or query parameter has an invalid format"));
     }
 }

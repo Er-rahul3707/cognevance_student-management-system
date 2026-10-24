@@ -10,9 +10,9 @@ import java.util.List;
 public class StudentController {
     private final StudentService service;
     public StudentController(StudentService service) { this.service = service; }
-    @GetMapping public List<Student> list(@RequestParam(required = false) String q) { return service.findAll(q); }
-    @GetMapping("/{id}") public Student get(@PathVariable Long id) { return service.findById(id); }
-    @PostMapping @ResponseStatus(HttpStatus.CREATED) public Student create(@Valid @RequestBody StudentRequest request) { return service.create(request); }
-    @PutMapping("/{id}") public Student update(@PathVariable Long id, @Valid @RequestBody StudentRequest request) { return service.update(id, request); }
+    @GetMapping public List<StudentResponse> list(@RequestParam(required = false) String q) { return service.findAll(q).stream().map(StudentResponse::from).toList(); }
+    @GetMapping("/{id}") public StudentResponse get(@PathVariable Long id) { return StudentResponse.from(service.findById(id)); }
+    @PostMapping @ResponseStatus(HttpStatus.CREATED) public StudentResponse create(@Valid @RequestBody StudentRequest request) { return StudentResponse.from(service.create(request)); }
+    @PutMapping("/{id}") public StudentResponse update(@PathVariable Long id, @Valid @RequestBody StudentRequest request) { return StudentResponse.from(service.update(id, request)); }
     @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@PathVariable Long id) { service.delete(id); }
 }

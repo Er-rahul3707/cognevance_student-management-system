@@ -1,13 +1,20 @@
-target/
+# Generated build output
 **/target/
+
+# Local credentials and environment files
 .env
-*.log
+.env.*
+!.env.example
+
+# IDE and OS files
 .idea/
 .vscode/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Logs and generated artifacts
+*.log
+*.class
 node_modules/
 coverage/
-*.class
-
