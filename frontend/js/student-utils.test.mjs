@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStudentsUrl, escapeHtml, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl } from './student-utils.mjs';
+import { buildStudentsUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl } from './student-utils.mjs';
 
 test('normalizes API base URLs and encodes search terms', () => {
   assert.equal(normalizeApiBaseUrl(' https://api.example.test/v1/// '), 'https://api.example.test/v1');
@@ -18,6 +18,22 @@ test('builds initials from the first and last-name positions shown in the table'
   assert.equal(getInitials('  Asha   Patel  '), 'AP');
   assert.equal(getInitials('Cher'), 'C');
   assert.equal(getInitials(''), '');
+});
+
+test('filters students by course and sorts names without mutating source data', () => {
+  const source = [
+    { id: 2, fullName: 'Zara Noor', course: 'Design' },
+    { id: 1, fullName: 'Asha Patel', course: 'Computer Science' },
+    { id: 3, fullName: 'Bina Das', course: 'Computer Science' }
+  ];
+  assert.deepEqual(filterAndSortStudents(source, 'Computer Science', 'name').map(student => student.id), [1, 3]);
+  assert.deepEqual(source.map(student => student.id), [2, 1, 3]);
+});
+
+test('supports newest and oldest student ordering', () => {
+  const students = [{ id: 1, course: 'A', fullName: 'One' }, { id: 3, course: 'A', fullName: 'Three' }];
+  assert.deepEqual(filterAndSortStudents(students).map(student => student.id), [3, 1]);
+  assert.deepEqual(filterAndSortStudents(students, '', 'oldest').map(student => student.id), [1, 3]);
 });
 
 test('calculates dashboard totals and current-month enrollments', () => {

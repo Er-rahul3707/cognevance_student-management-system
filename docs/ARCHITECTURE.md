@@ -2,19 +2,23 @@
 
 ## Components
 
-- **Frontend:** `frontend/index.html`, `frontend/css/styles.css`, and JavaScript modules provide a responsive student directory and dialogs. The app makes fetch requests to the configured REST API; dynamic student values are HTML-escaped when rendering table rows and assigned through `textContent` in the profile dialog.
-- **REST API:** `StudentController` maps `/api/students` operations and returns `StudentResponse` DTOs. `StudentRequest` constrains incoming values with Jakarta Validation.
+- **Frontend:** `frontend/index.html`, `frontend/css/styles.css`, and vanilla JavaScript modules provide the responsive directory, sign-in prompt, CRUD forms, filtering/sorting, field feedback, and confirmation dialogs. The page keeps the HTTP Basic authorization header in memory only. User data is HTML-escaped when rendered in rows and assigned through `textContent` in profile/error text.
+- **Security boundary:** Spring Security requires HTTP Basic authentication for every API route. One administrator is provisioned at startup from environment variables, BCrypt-encoded in memory, and granted the `ADMIN` role. This is single-account authentication, not persistent multi-user or granular authorization. Use HTTPS outside local development.
+- **REST API:** `StudentController` maps `/api/students` and returns response DTOs. Jakarta Validation constrains incoming `StudentRequest` payloads.
 - **Business and persistence:** `StudentService` trims text, normalizes email addresses to lowercase, checks case-insensitive duplicates, and applies CRUD operations through `StudentRepository` / Spring Data JPA.
-- **Database:** MySQL stores the `students` table and enforces a unique email constraint. Hibernate uses `validate`; schema setup is done explicitly using `database/schema.sql`.
-- **Cross-cutting configuration:** `WebConfig` applies configured CORS origins. `GlobalExceptionHandler` formats validation, malformed request, conflict, missing record, database, and unexpected errors as JSON.
+- **Database:** MySQL is the default runtime and has a unique email constraint. An explicitly selected `local-h2` profile supports isolated local runtime checks. Hibernate uses `validate`; schema creation and updates are operator-managed via `database/schema.sql`.
+- **Cross-cutting configuration:** `WebConfig` applies explicitly configured CORS origins. `GlobalExceptionHandler` formats validation, malformed request, conflict, missing record, database, and unexpected errors as JSON.
 
 ## Request flow
 
 ```text
 Browser UI
-   │ HTTP + JSON (CORS)
+   │ HTTP Basic + JSON (CORS)
    ▼
-StudentController ── validates StudentRequest
+Spring Security ── authenticate configured administrator
+   │
+   ▼
+StudentController ── validate StudentRequest
    │
    ▼
 StudentService ── normalize email / enforce business rules
@@ -23,15 +27,15 @@ StudentService ── normalize email / enforce business rules
 StudentRepository ── Spring Data JPA
    │
    ▼
-MySQL students table
+MySQL students table (default) or explicitly selected local H2
 ```
 
-Exceptions from controller/service/database layers are mapped by `GlobalExceptionHandler`; successful read/write responses use the public response DTO. No persistence entity is serialized directly by the API.
+Exceptions from controller/service/database layers are mapped by `GlobalExceptionHandler`; successful read/write responses use public DTOs. Persistence entities are not serialized directly by the API.
 
 ## Data and trust boundaries
 
-The API is configured for an explicitly listed set of browser origins. CORS limits which browser origins can read responses; it is not authentication. There is currently no login, authorization, request throttling, or audit trail, so the service is intended for local/demo use without real student data. Keep database credentials on the server side and grant the application user only DML permissions.
+CORS limits which browser origins can read API responses; it is not authentication. Credentials must be supplied through environment variables and not placed in frontend files or source control. Basic authentication does not encrypt traffic; use HTTPS for any non-local connection. The frontend's sign-out clears its in-memory header; the server has no stateful session or revocation mechanism.
 
 ## Current design limits
 
-List and search endpoints return all matches; pagination and server-side aggregation are not implemented. Dashboard statistics are calculated in the client from the full list. MySQL schema evolution currently requires a deliberate operator-managed update; Hibernate only validates the schema at runtime.
+List and search endpoints return all matches without pagination or server-side sorting. The dashboard filters and sorts the result set in the browser and calculates statistics from the fetched records. The application has no durable user management, roles beyond the single administrator, request throttling, audit history, managed schema migrations, or deployment automation. MySQL connectivity must be verified separately; H2 is not evidence of MySQL integration.

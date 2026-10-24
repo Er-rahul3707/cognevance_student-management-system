@@ -13,6 +13,14 @@ export function getInitials(fullName) {
     .slice(0, 2).map(part => part[0].toLocaleUpperCase()).join('');
 }
 
+export function filterAndSortStudents(students, course = '', sortOrder = 'newest') {
+  return students.filter(student => !course || student.course === course).slice().sort((a, b) => {
+    if (sortOrder === 'name') return a.fullName.localeCompare(b.fullName, undefined, { sensitivity: 'base' });
+    if (sortOrder === 'course') return a.course.localeCompare(b.course, undefined, { sensitivity: 'base' }) || a.fullName.localeCompare(b.fullName);
+    return sortOrder === 'oldest' ? a.id - b.id : b.id - a.id;
+  });
+}
+
 export function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'

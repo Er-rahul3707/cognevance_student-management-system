@@ -7,6 +7,8 @@ A Java full-stack student directory for maintaining enrollment records through a
 - Create, view, update, delete, and search student records by name, email, course, or numeric ID.
 - Server-side validation, case-insensitive duplicate email protection, useful field errors, and appropriate HTTP status codes.
 - Responsive dashboard with loading, empty, success, and error states, student details, and confirmation before deletion.
+- Directory controls for course filtering and sorting the current result set by newest, oldest, name, or course.
+- Field-specific validation feedback, an in-app delete confirmation, and sign-out that clears the page's in-memory authorization header.
 - Environment-based database and CORS configuration; no credentials are required in source files.
 - HTTP Basic administrator authentication for every backend route, with BCrypt-encoded in-memory credentials from environment variables and a browser sign-in form.
 
@@ -100,7 +102,7 @@ node --test frontend/js/student-utils.test.mjs
 
 See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction between automated tests, live H2 API checks, browser checks, and MySQL integration status.
 
-**Verification on 2026-10-25:** backend tests passed 13/13, Maven package passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including anonymous 401, authenticated CRUD, search, invalid-input 400, delete 204, missing-after-delete 404, and cleanup. The browser displayed the new administrator sign-in dialog, but authenticated browser CRUD was not rerun because the available browser automation must not enter credentials into an authentication form. An earlier pre-auth browser CRUD run is documented in [TESTING.md](docs/TESTING.md) and does not verify the current sign-in flow. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
+**Previously recorded verification (2026-10-25):** backend tests passed 13/13, Maven package passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including anonymous 401, authenticated CRUD, search, invalid-input 400, delete 204, missing-after-delete 404, and cleanup. See [TESTING.md](docs/TESTING.md) for these recorded results and the additional verification run for the current revision. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
 
 ## Troubleshooting
 
@@ -113,7 +115,7 @@ See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction be
 
 ## Security and limitations
 
-`.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. The backend refuses to start unless `APP_AUTH_USERNAME` is nonblank and `APP_AUTH_PASSWORD` contains at least 16 Unicode characters and no more than 72 UTF-8 bytes. Basic authentication must be used only over HTTPS outside localhost. Credentials are BCrypt-encoded in memory on startup, and the browser keeps its Basic authorization value in page memory only (refresh signs out). Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or sorting and has no durable user management, authorization roles beyond administrator, audit history, managed migrations, or deployment automation. These are remaining production limitations.
+`.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. The backend refuses to start unless `APP_AUTH_USERNAME` is nonblank and `APP_AUTH_PASSWORD` contains at least 16 Unicode characters and no more than 72 UTF-8 bytes. Basic authentication must be used only over HTTPS outside localhost. Credentials are BCrypt-encoded in memory on startup, and the browser keeps its Basic authorization value in page memory only (refresh or sign-out clears it). Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or server-side sorting; the dashboard applies sorting to the returned records and offers course filtering. It has no durable user management, authorization roles beyond administrator, audit history, managed migrations, or deployment automation. These are remaining production limitations.
 
 ## Deployment preparation
 
@@ -121,7 +123,9 @@ The application can be prepared for a demo host by serving the static frontend s
 
 ## Screenshots
 
-No screenshots are committed. The local browser verification used synthetic test data and was not captured as a project screenshot.
+The sign-in view below is a genuine Chrome capture of the locally served application. Administrator credentials were not entered into browser automation, so authenticated dashboard and CRUD views are not represented. No student personal data or credentials appear in the image.
+
+![Administrator sign-in screen](screenshots/sign-in.png)
 
 ## License and author
 

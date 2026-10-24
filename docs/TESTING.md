@@ -7,13 +7,13 @@ Verification for this working revision was performed on 2026-10-25. Commands wer
 | Check | Result |
 | --- | --- |
 | `mvn -f backend/pom.xml test` | **Passed** — 13 tests, 0 failures/errors/skips; Spring MockMvc tests use in-memory H2 |
-| `mvn -f backend/pom.xml package` | **Passed** — packaged with Spring Boot 3.5.16 after the framework upgrade |
-| Bundled Node syntax checks for `frontend/js/app.js` and `frontend/js/student-utils.mjs` | **Passed** |
-| Bundled Node `--test frontend/js/student-utils.test.mjs` | **Passed** — 5 tests, 0 failures |
+| `mvn -f backend/pom.xml package` | **Passed** — package built successfully with Spring Boot 3.5.16 |
+| Bundled Node syntax checks for `frontend/js/app.js` and `frontend/js/student-utils.mjs` | **Passed** after the current frontend changes |
+| Bundled Node `--test frontend/js/student-utils.test.mjs` | **Passed** — 7 tests, 0 failures; includes course filtering, sort modes, and source-array immutability |
 | `git diff --check` | **Passed** after final edits |
 | npm scripts | Not runnable because npm is not on PATH; equivalent Node commands were used directly |
 
-Backend automated tests cover REST CRUD, a committed create/read/delete persistence flow across separate HTTP requests, search, validation, malformed JSON, duplicate email handling, and error statuses. They use H2 and do not verify MySQL compatibility.
+Backend automated tests cover REST CRUD, a committed create/read/delete persistence flow across separate HTTP requests, search, validation, malformed JSON, duplicate email handling, and error statuses. The current UI's sort/filter utility tests are pure Node tests and do not exercise the DOM. Backend tests use H2 and do not verify MySQL compatibility.
 
 Security integration tests verify that unauthenticated and incorrectly authenticated API reads and writes return 401, and that valid configured administrator credentials can read and submit a request (the latter reaches normal validation). They also check the configured CORS authorization preflight and reject invalid account configuration. Test contexts use test-only credentials and H2. They do not validate production account provisioning or TLS termination.
 
@@ -27,7 +27,7 @@ The earlier live HTTP workflow verified: initial empty list; POST create (201); 
 
 ## Manual browser verification
 
-Before administrator authentication was added, the frontend was served at `http://localhost:5500` and browser automation exercised create, search by course, student details, update, and confirmed deletion against the local H2 API. This historical run does not verify the current authenticated UI. In the current revision, the in-app browser loaded the dashboard and displayed the sign-in dialog; credential entry was not automated. Current authenticated API CRUD is verified over HTTP, but browser CRUD with sign-in remains unverified. No screenshot was committed.
+Before administrator authentication was added, the frontend was served at `http://localhost:5500` and browser automation exercised create, search by course, student details, update, and confirmed deletion against the local H2 API. This historical run does not verify the current authenticated UI. For the current revision, the static frontend server returned HTTP 200, and Chrome headless captured the real sign-in view at `screenshots/sign-in.png` (1440 × 1000); the image was opened and visually checked. Administrator credentials were not entered into browser automation, so sign-in success and authenticated browser CRUD were not tested in this run. The current frontend JavaScript and pure list utility functions are syntax/test checked; authenticated CRUD remains verified over HTTP only, not through a browser.
 
 ## Commands
 

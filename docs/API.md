@@ -52,8 +52,15 @@ The credential mechanism does not encrypt HTTP traffic. Use HTTPS for any non-lo
 ```
 
 ```powershell
+$securePassword = Read-Host 'Administrator password' -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try { $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer) }
+finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer) }
+$basic = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$($env:APP_AUTH_USERNAME):$plainPassword"))
+$headers = @{ Authorization = "Basic $basic" }
 $body = @{ fullName = 'Asha Patel'; email = 'asha@example.com'; phone = '+91 98765 43210'; course = 'Computer Science'; enrollmentDate = '2025-01-10' } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/students' -ContentType 'application/json' -Body $body
+try { Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/students' -Headers $headers -ContentType 'application/json' -Body $body }
+finally { Remove-Variable plainPassword,basic,headers -ErrorAction SilentlyContinue }
 ```
 
 A successful response contains the submitted fields plus generated values, for example:
