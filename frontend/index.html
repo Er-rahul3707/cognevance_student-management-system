@@ -7,6 +7,15 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <dialog id="loginDialog" aria-labelledby="loginTitle">
+    <form id="loginForm" class="login-form">
+      <div class="dialog-head"><div><div class="eyebrow">SECURE WORKSPACE</div><h2 id="loginTitle">Administrator sign in</h2><p>Use the local account configured for the backend.</p></div></div>
+      <label>Username <input required name="username" id="loginUsername" autocomplete="username"></label>
+      <label>Password <input required type="password" name="password" id="loginPassword" autocomplete="current-password"></label>
+      <div class="dialog-error" id="loginError" role="alert"></div>
+      <div class="dialog-actions"><button class="button button-primary" id="loginButton" type="submit">Sign in</button></div>
+    </form>
+  </dialog>
   <aside class="sidebar" aria-label="Main navigation">
     <a class="brand" href="#students" aria-label="Cognevance home"><span class="brand-mark">C</span><span>cognevance<span class="brand-sub">EDUCATION</span></span></a>
     <div class="nav-label">WORKSPACE</div><a class="nav-item active" href="#students"><span class="nav-icon">▦</span>Students</a>

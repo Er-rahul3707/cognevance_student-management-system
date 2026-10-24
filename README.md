@@ -8,8 +8,9 @@ A Java full-stack student directory for maintaining enrollment records through a
 - Server-side validation, case-insensitive duplicate email protection, useful field errors, and appropriate HTTP status codes.
 - Responsive dashboard with loading, empty, success, and error states, student details, and confirmation before deletion.
 - Environment-based database and CORS configuration; no credentials are required in source files.
+- HTTP Basic administrator authentication for every backend route, with BCrypt-encoded in-memory credentials from environment variables and a browser sign-in form.
 
-Authentication, authorization, pagination, and deployment are outside the current project scope. Do not expose this application publicly with real student data without adding access controls.
+The API requires the configured single administrator account. The credential is loaded from environment variables and never persisted as an application user. This is suitable for a controlled local demo; use HTTPS, managed identity lifecycle, rate limiting, and a durable user store before a public deployment.
 
 ## Technology and architecture
 
@@ -45,6 +46,16 @@ backend/       Spring Boot application, configuration, and H2-backed tests
 ## Run locally
 
 For MySQL, follow [docs/SETUP.md](docs/SETUP.md) to initialize the project database and dedicated app user. Spring Boot does not load `.env` files automatically; set environment variables in the same PowerShell terminal used to launch Maven. Hibernate validates the MySQL schema and does not modify it.
+
+Set the administrator credentials in the same PowerShell terminal before starting either profile. Use a unique username and a randomly generated password of 16–72 UTF-8 bytes. The password is held in that terminal's process environment; do not put a real value in a script or commit it.
+
+```powershell
+$env:APP_AUTH_USERNAME = 'admin'
+$securePassword = Read-Host 'Enter a unique local password (16+ characters)' -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try { $env:APP_AUTH_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer) }
+finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer) }
+```
 
 For a local isolated H2 runtime, run from the repository root:
 
@@ -89,7 +100,7 @@ node --test frontend/js/student-utils.test.mjs
 
 See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction between automated tests, live H2 API checks, browser checks, and MySQL integration status.
 
-**Verification on 2026-10-24:** the backend suite passed 7/7, Maven packaging passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including CRUD, search, validation, duplicate email, malformed input, missing IDs, and persistence after restart. Browser checks against that API covered create, search, view details, update, and confirmed deletion. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
+**Verification on 2026-10-25:** backend tests passed 13/13, Maven package passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including anonymous 401, authenticated CRUD, search, invalid-input 400, delete 204, missing-after-delete 404, and cleanup. The browser displayed the new administrator sign-in dialog, but authenticated browser CRUD was not rerun because the available browser automation must not enter credentials into an authentication form. An earlier pre-auth browser CRUD run is documented in [TESTING.md](docs/TESTING.md) and does not verify the current sign-in flow. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
 
 ## Troubleshooting
 
@@ -102,11 +113,11 @@ See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction be
 
 ## Security and limitations
 
-`.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or sorting, and it has no authentication, authorization, audit history, managed migrations, or deployment automation. These are limitations, not production assurances.
+`.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. The backend refuses to start unless `APP_AUTH_USERNAME` is nonblank and `APP_AUTH_PASSWORD` is between 16 and 72 UTF-8 bytes. Basic authentication must be used only over HTTPS outside localhost. Credentials are BCrypt-encoded in memory on startup, and the browser keeps its Basic authorization value in page memory only (refresh signs out). Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or sorting and has no durable user management, authorization roles beyond administrator, audit history, managed migrations, or deployment automation. These are remaining production limitations.
 
 ## Deployment preparation
 
-The application can be prepared for a demo host by serving the static frontend separately and running the Spring Boot jar with a persistent remote MySQL database. Set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `CORS_ALLOWED_ORIGINS`, and the host-provided `PORT` (or `SERVER_PORT`) as environment variables; use HTTPS and MySQL Connector/J `sslMode=VERIFY_IDENTITY` for remote database connections. Do not use the local H2 file profile on ephemeral hosts. This repository has no deployment configuration and has not been deployed. Add authentication and authorization before exposing student records or allowing public CRUD; free tiers are demonstration infrastructure, not production availability guarantees.
+The application can be prepared for a demo host by serving the static frontend separately and running the Spring Boot jar with a persistent remote MySQL database. Set `APP_AUTH_USERNAME`, `APP_AUTH_PASSWORD`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `CORS_ALLOWED_ORIGINS`, and the host-provided `PORT` (or `SERVER_PORT`) as environment variables; use HTTPS and MySQL Connector/J `sslMode=VERIFY_IDENTITY` for remote database connections. Do not use the local H2 file profile on ephemeral hosts. This repository has no deployment configuration and has not been deployed. The current single-account Basic authentication is not a complete multi-user production identity system; free tiers are demonstration infrastructure, not production availability guarantees.
 
 ## Screenshots
 
@@ -114,4 +125,4 @@ No screenshots are committed. The local browser verification used synthetic test
 
 ## License and author
 
-See the [MIT License](LICENSE). Author: **Rahul Chandra Sharma**.
+See the [MIT License](LICENSE).

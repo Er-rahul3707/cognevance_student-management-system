@@ -13,6 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
         String[] origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim).filter(origin -> !origin.isEmpty()).toArray(String[]::new);
         registry.addMapping("/api/**").allowedOrigins(origins)
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS").allowedHeaders("*");
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("Authorization", "Content-Type");
     }
 }

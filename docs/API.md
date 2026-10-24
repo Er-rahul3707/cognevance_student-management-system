@@ -2,6 +2,21 @@
 
 Base URL: `http://localhost:8080/api`. All request and response bodies are JSON except DELETE, which returns an empty body. Search is case-insensitive for name, email, and course and also matches the decimal student ID. Results are ordered by descending ID. The API currently has no pagination or sort parameters.
 
+All routes require HTTP Basic administrator authentication configured with `APP_AUTH_USERNAME` and `APP_AUTH_PASSWORD`; requests without valid credentials return 401. For local PowerShell use, read the password securely and construct a temporary Basic authorization header:
+
+```powershell
+$securePassword = Read-Host 'Administrator password' -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try { $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer) }
+finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer) }
+$basic = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$($env:APP_AUTH_USERNAME):$plainPassword"))
+$headers = @{ Authorization = "Basic $basic" }
+try { Invoke-RestMethod -Headers $headers -Uri 'http://localhost:8080/api/students' }
+finally { Remove-Variable plainPassword,basic,headers -ErrorAction SilentlyContinue }
+```
+
+The credential mechanism does not encrypt HTTP traffic. Use HTTPS for any non-local connection.
+
 ## Endpoints
 
 | Method | Path | Request | Success | Error cases |

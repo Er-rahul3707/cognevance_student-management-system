@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest @AutoConfigureMockMvc @Transactional
-@TestPropertySource(properties = {"spring.datasource.url=jdbc:h2:mem:students;MODE=MySQL;DB_CLOSE_DELAY=-1", "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop"})
+@SpringBootTest @AutoConfigureMockMvc(addFilters = false) @Transactional
+@TestPropertySource(properties = {"spring.datasource.url=jdbc:h2:mem:students;MODE=MySQL;DB_CLOSE_DELAY=-1", "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop", "app.auth.username=test-admin", "app.auth.password=test-password-long-enough"})
 class StudentApiIntegrationTest {
     @Autowired MockMvc mvc;
     private final String valid = "{\"fullName\":\"Asha Patel\",\"email\":\"asha@example.com\",\"phone\":\"+91 98765 43210\",\"course\":\"Computer Science\",\"enrollmentDate\":\"2025-01-10\"}";
@@ -66,6 +66,27 @@ class StudentApiIntegrationTest {
         mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(valid)).andExpect(status().isCreated());
         mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(valid.replace("asha@example.com", "ASHA@example.com")))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("A student with this email already exists"));
+    }
+
+    @Test void rejectsDuplicateEmailOnUpdateAndUnknownUpdate() throws Exception {
+        String first = valid.replace("asha@example.com", "first@example.com");
+        String second = valid.replace("asha@example.com", "second@example.com");
+        MvcResult firstCreated = mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(first))
+                .andExpect(status().isCreated()).andReturn();
+        int firstId = com.jayway.jsonpath.JsonPath.read(firstCreated.getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(second))
+                .andExpect(status().isCreated());
+        mvc.perform(put("/api/students/" + firstId).contentType(MediaType.APPLICATION_JSON)
+                        .content(first.replace("first@example.com", "second@example.com")))
+                .andExpect(status().isConflict());
+        mvc.perform(get("/api/students/" + firstId)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("first@example.com"));
+        mvc.perform(put("/api/students/999999").contentType(MediaType.APPLICATION_JSON).content(valid))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test void deleteUnknownStudentReturnsNotFound() throws Exception {
+        mvc.perform(delete("/api/students/999999")).andExpect(status().isNotFound());
     }
 
     @Test void reportsEmailPhoneAndEnrollmentValidationErrors() throws Exception {

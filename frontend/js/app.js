@@ -5,9 +5,12 @@ const rows = document.getElementById('studentRows');
 const dialog = document.getElementById('studentDialog');
 const detailsDialog = document.getElementById('detailsDialog');
 const form = document.getElementById('studentForm');
+const loginDialog = document.getElementById('loginDialog');
+const loginForm = document.getElementById('loginForm');
 let students = [];
 let searchTimer;
 let latestLoad = 0;
+let authorization = '';
 
 document.getElementById('today').textContent = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date());
 document.getElementById('addStudent').addEventListener('click', () => openForm());
@@ -23,7 +26,51 @@ document.getElementById('closeDetails').addEventListener('click', () => detailsD
 document.getElementById('closeDetailsFooter').addEventListener('click', () => detailsDialog.close());
 detailsDialog.addEventListener('click', event => { if (event.target === detailsDialog) detailsDialog.close(); });
 form.addEventListener('submit', saveStudent);
-loadStudents();
+loginForm.addEventListener('submit', signIn);
+loginDialog.showModal();
+document.getElementById('loginUsername').focus();
+
+async function signIn(event) {
+  event.preventDefault();
+  const data = new FormData(loginForm);
+  const username = data.get('username');
+  const password = data.get('password');
+  const bytes = new TextEncoder().encode(`${username}:${password}`);
+  const candidate = `Basic ${btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))}`;
+  const button = document.getElementById('loginButton');
+  button.disabled = true;
+  document.getElementById('loginError').textContent = '';
+  try {
+    const response = await fetch(buildStudentsUrl(API_BASE_URL), { headers: { Authorization: candidate } });
+    if (response.status === 401 || response.status === 403) {
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginPassword').focus();
+      throw new Error('Username or password was not accepted.');
+    }
+    if (!response.ok) throw await apiError(response);
+    authorization = candidate;
+    loginForm.reset();
+    loginDialog.close();
+    await loadStudents();
+  } catch (error) {
+    document.getElementById('loginError').textContent = error instanceof TypeError
+      ? 'Could not reach the API. Check the backend URL and try again.'
+      : error.message;
+  } finally { button.disabled = false; }
+}
+
+async function apiFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (authorization) headers.set('Authorization', authorization);
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401 || response.status === 403) {
+    authorization = '';
+    document.getElementById('loginError').textContent = 'Your sign-in expired. Please sign in again.';
+    if (!loginDialog.open) loginDialog.showModal();
+    throw new Error('Sign-in required.');
+  }
+  return response;
+}
 
 async function loadStudents(query = '') {
   const requestId = ++latestLoad;
@@ -31,8 +78,8 @@ async function loadStudents(query = '') {
   rows.setAttribute('aria-busy', 'true');
   try {
     const [response, allResponse] = await Promise.all([
-      fetch(buildStudentsUrl(API_BASE_URL, query)),
-      query ? fetch(buildStudentsUrl(API_BASE_URL)) : null
+      apiFetch(buildStudentsUrl(API_BASE_URL, query)),
+      query ? apiFetch(buildStudentsUrl(API_BASE_URL)) : null
     ]);
     if (requestId !== latestLoad) return;
     if (!response.ok) throw await apiError(response);
@@ -75,14 +122,14 @@ function updateStats(list) {
 
 async function actOnStudent(action, id) {
   try {
-    const response = await fetch(`${API_BASE_URL}/students/${id}`);
+    const response = await apiFetch(`${API_BASE_URL}/students/${id}`);
     if (!response.ok) throw await apiError(response);
     const student = await response.json();
     if (action === 'view') {
       showDetails(student);
     } else if (action === 'edit') openForm(student);
     else if (action === 'delete' && window.confirm(`Delete ${student.fullName}? This action cannot be undone.`)) {
-      const deletion = await fetch(`${API_BASE_URL}/students/${id}`, { method: 'DELETE' });
+      const deletion = await apiFetch(`${API_BASE_URL}/students/${id}`, { method: 'DELETE' });
       if (!deletion.ok) throw await apiError(deletion);
       toast('Student deleted');
       await loadStudents(document.getElementById('searchInput').value.trim());
@@ -130,7 +177,7 @@ async function saveStudent(event) {
   const button = document.getElementById('saveButton');
   button.disabled = true; button.textContent = 'Saving…';
   try {
-    const response = await fetch(`${API_BASE_URL}/students${id ? `/${id}` : ''}`, {
+    const response = await apiFetch(`${API_BASE_URL}/students${id ? `/${id}` : ''}`, {
       method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     });
     if (!response.ok) throw await apiError(response);
