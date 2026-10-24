@@ -122,19 +122,30 @@ npm --prefix frontend run check
 npm --prefix frontend test
 ```
 
+If `npm` is unavailable but Node.js is installed, run the frontend checks directly:
+
+```powershell
+node --check frontend/js/app.js
+node --check frontend/js/student-utils.mjs
+node --test frontend/js/student-utils.test.mjs
+```
+
 The backend test profile uses an in-memory H2 database. It verifies API behavior but does not prove MySQL connectivity or MySQL-specific compatibility. See [docs/TESTING.md](docs/TESTING.md) for the latest actual results and environment limits.
+
+**Latest verification (2026-10-24):** `mvn -f backend/pom.xml test` passed (6/6); frontend JavaScript syntax checks and utility tests passed (5/5). MySQL 8 is installed and running locally, but the dedicated app-user login was rejected with MySQL error 1045 and no administrator login was available. The backend could not start against the project's isolated database. The frontend rendered in the browser, but the API request failed; no live CRUD or MySQL integration is claimed. See [docs/TESTING.md](docs/TESTING.md) for details and the required local setup action.
 
 ## Demonstration
 
-Start MySQL, the API, and the static frontend as described above. The dashboard initially displays the current directory; add a student, search by each supported field, open its details, edit it, try a duplicate email, then delete it with the confirmation prompt. This repository does not include a screenshot of a running application; capture a genuine browser screenshot after starting the app if one is required for submission.
+Once MySQL credentials are configured and the API starts, the dashboard should display the current directory. Add a student, search by each supported field, open its details, edit it, try a duplicate email, then delete it with the confirmation prompt. In the 2026-10-24 runtime check, the frontend loaded but could not reach the API because the local database login was unavailable; no live CRUD session or runtime screenshot is claimed.
 
 ## Troubleshooting
 
 - **API fails to start with a schema validation error:** Run `database/schema.sql` against the intended `student_management` MySQL database and confirm it contains the `students` table.
 - **Access denied:** Check local `DB_USERNAME` and `DB_PASSWORD` values and the MySQL user's host grant. Do not use unrelated database credentials.
+- **MySQL error 1045 for `student_app`:** Use a local MySQL administrator in Workbench or the CLI to run `database/schema.sql` after replacing its password placeholder, then set matching `DB_USERNAME` and `DB_PASSWORD` variables for the application. `CREATE USER IF NOT EXISTS` does not change the password of an account that already exists; reset only this project's dedicated account or choose another dedicated account and grant it DML access to `student_management`.
 - **Frontend cannot reach the API:** Confirm the API is listening on port 8080 and that `CORS_ALLOWED_ORIGINS` exactly matches the frontend origin, including port.
 - **Port already in use:** Change `SERVER_PORT` for the API or serve the frontend on another port and update CORS accordingly.
-- **`npm` command is unavailable:** Install Node.js 18+ or run only the Java checks.
+- **`npm` command is unavailable:** Install Node.js 18+ (which includes npm), or if `node` is available run the direct checks in the [testing section](#testing).
 
 ## Security notes
 

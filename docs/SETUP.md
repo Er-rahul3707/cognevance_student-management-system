@@ -13,11 +13,13 @@ These steps run the existing application locally with MySQL 8, Spring Boot, and 
 
 From the repository root, run `database/schema.sql` in MySQL Workbench or the MySQL CLI as an administrator. Before running it, replace the `replace_with_a_local_password` placeholder in the `CREATE USER` statement with a strong local password. The script creates `student_management`, the `students` table, and a restricted `student_app` account. The application account is granted SELECT, INSERT, UPDATE, and DELETE only. The database administrator creates the schema; the application validates it and does not perform schema migrations.
 
-Example with an installed MySQL CLI (run from the repository root):
+For the CLI from PowerShell, run this through `cmd.exe` so Windows shell input redirection is handled by the command interpreter (run from the repository root):
 
 ```powershell
-mysql -u root -p < database/schema.sql
+cmd.exe /c '"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p < database\schema.sql'
 ```
+
+Alternatively, open `database/schema.sql` in MySQL Workbench while connected as an administrator and execute it there.
 
 ## 3. Configure backend environment
 
