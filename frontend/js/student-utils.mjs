@@ -3,6 +3,14 @@ export function normalizeApiBaseUrl(value) {
   return base.replace(/\/+$/, '');
 }
 
+export class SessionEpoch {
+  #value = 0;
+
+  capture() { return this.#value; }
+  invalidate() { this.#value += 1; }
+  isCurrent(value) { return value === this.#value; }
+}
+
 export function buildStudentsUrl(baseUrl, query = '') {
   const base = normalizeApiBaseUrl(baseUrl);
   return `${base}/students${query ? `?q=${encodeURIComponent(query)}` : ''}`;

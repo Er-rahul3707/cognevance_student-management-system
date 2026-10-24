@@ -8,7 +8,7 @@ A Java full-stack student directory for maintaining enrollment records through a
 - Server-side validation, case-insensitive duplicate email protection, useful field errors, and appropriate HTTP status codes.
 - Responsive dashboard with loading, empty, success, and error states, student details, and confirmation before deletion.
 - Directory controls for course filtering and sorting the current result set by newest, oldest, name, or course.
-- Field-specific validation feedback, an in-app delete confirmation, and sign-out that clears the page's in-memory authorization header.
+- Field-specific validation feedback, an in-app delete confirmation, and sign-out that clears in-memory authorization and protected UI data while discarding stale requests.
 - Environment-based database and CORS configuration; no credentials are required in source files.
 - CORS configuration rejects empty and wildcard origins; set the exact frontend origin when hosting.
 - HTTP Basic administrator authentication for all student API routes, with BCrypt-encoded in-memory credentials from environment variables and a browser sign-in form.

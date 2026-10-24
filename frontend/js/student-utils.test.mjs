@@ -1,12 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStudentsUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl } from './student-utils.mjs';
+import { buildStudentsUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl, SessionEpoch } from './student-utils.mjs';
 
 test('normalizes API base URLs and encodes search terms', () => {
   assert.equal(normalizeApiBaseUrl(' https://api.example.test/v1/// '), 'https://api.example.test/v1');
   assert.equal(buildStudentsUrl('http://localhost:8080/api/', 'Asha Patel & Co'),
     'http://localhost:8080/api/students?q=Asha%20Patel%20%26%20Co');
   assert.equal(buildStudentsUrl('http://localhost:8080/api'), 'http://localhost:8080/api/students');
+});
+
+test('invalidating a session prevents pending work from exposing prior-session data', () => {
+  const session = new SessionEpoch();
+  const pendingRequest = session.capture();
+  assert.equal(session.isCurrent(pendingRequest), true);
+
+  session.invalidate();
+  assert.equal(session.isCurrent(pendingRequest), false);
+
+  const newSessionRequest = session.capture();
+  assert.equal(session.isCurrent(newSessionRequest), true);
 });
 
 test('escapes HTML-sensitive characters before inserting student values into markup', () => {

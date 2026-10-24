@@ -9,11 +9,11 @@ Verification for this working revision was performed on 2026-10-25. Commands wer
 | `mvn -f backend/pom.xml test` | **Passed** — 15 tests, 0 failures/errors/skips; Spring MockMvc tests use in-memory H2 |
 | `mvn -f backend/pom.xml package` | **Passed** — packaged successfully with Spring Boot 3.5.16; includes 15 backend tests |
 | Bundled Node syntax checks for `frontend/js/app.js` and `frontend/js/student-utils.mjs` | **Passed** |
-| Bundled Node `--test frontend/js/student-utils.test.mjs` | **Passed** — 7 tests, 0 failures; includes course filtering, sort modes, and source-array immutability |
+| Bundled Node `--test frontend/js/student-utils.test.mjs` | **Passed** — 8 tests, 0 failures; includes course filtering, sort modes, source-array immutability, and stale-session invalidation |
 | `git diff --check` | **Passed** after final edits |
 | npm scripts | Not runnable because npm is not on PATH; equivalent Node commands were used directly |
 
-Backend automated tests cover REST CRUD, a committed create/read/delete persistence flow across separate HTTP requests, search, validation, malformed JSON, duplicate email handling, and error statuses. The current UI's sort/filter utility tests are pure Node tests and do not exercise the DOM. Backend tests use H2 and do not verify MySQL compatibility.
+Backend automated tests cover REST CRUD, a committed create/read/delete persistence flow across separate HTTP requests, search, validation, malformed JSON, duplicate email handling, and error statuses. Frontend utility tests include the session-epoch primitive used to discard pending responses after sign-out, but remain pure Node tests and do not exercise the DOM. Backend tests use H2 and do not verify MySQL compatibility.
 
 The security integration suite additionally checks the unauthenticated status-only `GET /actuator/health` route and rejects empty or wildcard CORS origin configuration. The CI workflow is configured at `.github/workflows/ci.yml`; no GitHub-hosted workflow result is claimed until an Actions run is observed.
 

@@ -1,4 +1,4 @@
-import { buildStudentsUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl } from './student-utils.mjs';
+import { buildStudentsUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl, SessionEpoch } from './student-utils.mjs';
 
 const API_BASE_URL = normalizeApiBaseUrl(window.STUDENT_API_BASE_URL);
 const rows = document.getElementById('studentRows');
@@ -7,6 +7,7 @@ const detailsDialog = document.getElementById('detailsDialog');
 const form = document.getElementById('studentForm');
 const loginDialog = document.getElementById('loginDialog');
 const loginForm = document.getElementById('loginForm');
+const sessionEpoch = new SessionEpoch();
 let students = [];
 let matchedStudents = [];
 let searchTimer;
@@ -59,6 +60,7 @@ async function signIn(event) {
     }
     if (!response.ok) throw await apiError(response);
     authorization = candidate;
+    sessionEpoch.invalidate();
     document.getElementById('accountName').textContent = String(username);
     loginForm.reset();
     loginDialog.close();
@@ -71,13 +73,18 @@ async function signIn(event) {
 }
 
 async function apiFetch(url, options = {}) {
+  const requestSession = sessionEpoch.capture();
   const headers = new Headers(options.headers || {});
   if (authorization) headers.set('Authorization', authorization);
   const response = await fetch(url, { ...options, headers });
   if (response.status === 401 || response.status === 403) {
-    authorization = '';
-    document.getElementById('loginError').textContent = 'Your sign-in expired. Please sign in again.';
-    if (!loginDialog.open) loginDialog.showModal();
+    if (sessionEpoch.isCurrent(requestSession)) {
+      authorization = '';
+      sessionEpoch.invalidate();
+      clearProtectedView();
+      document.getElementById('loginError').textContent = 'Your sign-in expired. Please sign in again.';
+      if (!loginDialog.open) loginDialog.showModal();
+    }
     throw new Error('Sign-in required.');
   }
   return response;
@@ -148,10 +155,13 @@ function updateStats(list) {
 }
 
 async function actOnStudent(action, id) {
+  const requestSession = sessionEpoch.capture();
   try {
     const response = await apiFetch(`${API_BASE_URL}/students/${id}`);
+    if (!sessionEpoch.isCurrent(requestSession)) return;
     if (!response.ok) throw await apiError(response);
     const student = await response.json();
+    if (!sessionEpoch.isCurrent(requestSession)) return;
     if (action === 'view') {
       showDetails(student);
     } else if (action === 'edit') openForm(student);
@@ -162,7 +172,9 @@ async function actOnStudent(action, id) {
       document.getElementById('deleteDialog').showModal();
       document.getElementById('cancelDelete').focus();
     }
-  } catch (error) { toast(error.message, true); }
+  } catch (error) {
+    if (sessionEpoch.isCurrent(requestSession)) toast(error.message, true);
+  }
 }
 
 function closeDeleteDialog() {
@@ -172,18 +184,20 @@ function closeDeleteDialog() {
 
 async function deleteStudent() {
   if (pendingDeleteId === null) return;
+  const requestSession = sessionEpoch.capture();
   const id = pendingDeleteId;
   const button = document.getElementById('confirmDelete');
   button.disabled = true;
   button.textContent = 'Deleting…';
   try {
     const response = await apiFetch(`${API_BASE_URL}/students/${id}`, { method: 'DELETE' });
+    if (!sessionEpoch.isCurrent(requestSession)) return;
     if (!response.ok) throw await apiError(response);
     closeDeleteDialog();
     toast('Student deleted');
     await loadStudents(document.getElementById('searchInput').value.trim());
   } catch (error) {
-    document.getElementById('deleteError').textContent = error.message;
+    if (sessionEpoch.isCurrent(requestSession)) document.getElementById('deleteError').textContent = error.message;
   } finally {
     button.disabled = false;
     button.textContent = 'Delete student';
@@ -192,19 +206,41 @@ async function deleteStudent() {
 
 function signOut() {
   authorization = '';
+  sessionEpoch.invalidate();
+  clearProtectedView();
+  document.getElementById('loginError').textContent = '';
+  loginDialog.showModal();
+  document.getElementById('loginUsername').focus();
+}
+
+function clearProtectedView() {
+  latestLoad += 1;
+  clearTimeout(searchTimer);
+  searchTimer = undefined;
   students = [];
   matchedStudents = [];
   document.getElementById('accountName').textContent = 'Administrator';
   loginForm.reset();
-  document.getElementById('loginError').textContent = '';
   document.getElementById('searchInput').value = '';
-  document.getElementById('courseFilter').value = '';
+  document.getElementById('sortSelect').value = 'newest';
+  updateCourseFilter();
   document.getElementById('resultCount').textContent = '0';
   document.getElementById('tableSummary').textContent = 'Showing 0 students';
   updateStats([]);
   rows.innerHTML = '<tr><td colspan="6" class="loading-cell">Sign in to load student records.</td></tr>';
-  loginDialog.showModal();
-  document.getElementById('loginUsername').focus();
+  rows.setAttribute('aria-busy', 'false');
+  pendingDeleteId = null;
+  for (const openDialog of [dialog, detailsDialog, document.getElementById('deleteDialog')]) {
+    if (openDialog.open) openDialog.close();
+  }
+  form.reset();
+  document.getElementById('formError').textContent = '';
+  document.getElementById('deleteError').textContent = '';
+  form.querySelectorAll('.field-error').forEach(error => { error.textContent = ''; });
+  form.querySelectorAll('[aria-invalid="true"]').forEach(input => input.removeAttribute('aria-invalid'));
+  for (const id of ['detailId', 'detailName', 'detailEmail', 'detailPhone', 'detailCourse', 'detailEnrollmentDate', 'detailCreatedAt']) {
+    document.getElementById(id).textContent = '';
+  }
 }
 
 function showDetails(student) {
@@ -242,6 +278,7 @@ function closeForm() { dialog.close(); }
 
 async function saveStudent(event) {
   event.preventDefault();
+  const requestSession = sessionEpoch.capture();
   const id = document.getElementById('studentId').value;
   const payload = Object.fromEntries(new FormData(form).entries());
   delete payload.studentId;
@@ -252,10 +289,12 @@ async function saveStudent(event) {
     const response = await apiFetch(`${API_BASE_URL}/students${id ? `/${id}` : ''}`, {
       method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     });
+    if (!sessionEpoch.isCurrent(requestSession)) return;
     if (!response.ok) throw await apiError(response);
     closeForm(); toast(id ? 'Student updated' : 'Student added');
     await loadStudents(document.getElementById('searchInput').value.trim());
   } catch (error) {
+    if (!sessionEpoch.isCurrent(requestSession)) return;
     const formError = document.getElementById('formError');
     if (error.fieldErrors) {
       for (const [field, message] of Object.entries(error.fieldErrors)) {
