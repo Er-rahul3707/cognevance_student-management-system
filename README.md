@@ -15,7 +15,7 @@ Authentication, authorization, pagination, and deployment are outside the curren
 
 | Area | Stack |
 | --- | --- |
-| Backend | Java 17, Spring Boot 3.3.5, Spring Web, Spring Data JPA, Jakarta Validation |
+| Backend | Java 17, Spring Boot 3.5.16, Spring Web, Spring Data JPA, Jakarta Validation |
 | Runtime database | MySQL 8 (default); opt-in file-backed H2 profile for local development |
 | Frontend | HTML, CSS, vanilla JavaScript modules |
 | Verification | Maven, JUnit 5, Spring MockMvc, Node.js built-in test runner |
@@ -103,6 +103,10 @@ See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction be
 ## Security and limitations
 
 `.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or sorting, and it has no authentication, authorization, audit history, managed migrations, or deployment automation. These are limitations, not production assurances.
+
+## Deployment preparation
+
+The application can be prepared for a demo host by serving the static frontend separately and running the Spring Boot jar with a persistent remote MySQL database. Set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `CORS_ALLOWED_ORIGINS`, and the host-provided `PORT` (or `SERVER_PORT`) as environment variables; use HTTPS and MySQL Connector/J `sslMode=VERIFY_IDENTITY` for remote database connections. Do not use the local H2 file profile on ephemeral hosts. This repository has no deployment configuration and has not been deployed. Add authentication and authorization before exposing student records or allowing public CRUD; free tiers are demonstration infrastructure, not production availability guarantees.
 
 ## Screenshots
 

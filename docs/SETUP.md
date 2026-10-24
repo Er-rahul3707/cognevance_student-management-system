@@ -74,7 +74,7 @@ Open [http://localhost:5500](http://localhost:5500). The API default is `http://
 | `DB_URL` | Local MySQL `student_management` JDBC URL | MySQL JDBC endpoint (not used by local H2 profile) |
 | `DB_USERNAME` | `student_app` | MySQL account |
 | `DB_PASSWORD` | Empty | MySQL password; set locally |
-| `SERVER_PORT` | `8080` | Spring Boot HTTP port |
+| `SERVER_PORT` | `8080` | Spring Boot HTTP port; `PORT` is accepted as a hosting-platform fallback |
 | `CORS_ALLOWED_ORIGINS` | localhost:5500 and 127.0.0.1:5500 | Allowed frontend origins |
 
 ## Stop services
