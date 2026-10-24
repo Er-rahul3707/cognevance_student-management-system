@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -25,6 +26,22 @@ class StudentApiIntegrationTest {
         String updated = valid.replace("Asha Patel", "Asha P.").replace("asha@example.com", "ASHA@example.com");
         mvc.perform(put("/api/students/" + id).contentType(MediaType.APPLICATION_JSON).content(updated)).andExpect(status().isOk()).andExpect(jsonPath("$.fullName").value("Asha P."));
         mvc.perform(get("/api/students/" + id)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value("asha@example.com"));
+        mvc.perform(delete("/api/students/" + id)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/students/" + id)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void persistsChangesAcrossCommittedRequests() throws Exception {
+        String email = "persistence-" + java.util.UUID.randomUUID() + "@example.com";
+        String request = valid.replace("asha@example.com", email);
+        MvcResult created = mvc.perform(post("/api/students").contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isCreated()).andReturn();
+        int id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+        mvc.perform(get("/api/students/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email));
         mvc.perform(delete("/api/students/" + id)).andExpect(status().isNoContent());
         mvc.perform(get("/api/students/" + id)).andExpect(status().isNotFound());
     }

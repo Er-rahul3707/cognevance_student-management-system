@@ -6,14 +6,14 @@ Verification for this working revision was performed on 2026-10-24. Commands wer
 
 | Check | Result |
 | --- | --- |
-| `mvn -f backend/pom.xml test` | **Passed** — 6 tests, 0 failures/errors/skips; Spring MockMvc tests use in-memory H2 |
+| `mvn -f backend/pom.xml test` | **Passed** — 7 tests, 0 failures/errors/skips; Spring MockMvc tests use in-memory H2 |
 | `mvn -f backend/pom.xml package` | **Passed** — package build succeeded after final profile/docs changes |
 | Bundled Node syntax checks for `frontend/js/app.js` and `frontend/js/student-utils.mjs` | **Passed** |
 | Bundled Node `--test frontend/js/student-utils.test.mjs` | **Passed** — 5 tests, 0 failures |
 | `git diff --check` | **Passed** after final edits |
 | npm scripts | Not runnable because npm is not on PATH; equivalent Node commands were used directly |
 
-Backend automated tests cover REST CRUD, search, validation, malformed JSON, duplicate email handling, and error statuses. They use H2 and do not verify MySQL compatibility.
+Backend automated tests cover REST CRUD, a committed create/read/delete persistence flow across separate HTTP requests, search, validation, malformed JSON, duplicate email handling, and error statuses. They use H2 and do not verify MySQL compatibility.
 
 ## Live API and database verification
 

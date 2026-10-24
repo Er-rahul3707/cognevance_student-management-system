@@ -19,7 +19,16 @@ PowerShell command using the standard MySQL 8 installation path:
 cmd.exe /c '"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p < database\schema.sql'
 ```
 
-Alternatively, execute the file in MySQL Workbench. If `student_app` already exists, `CREATE USER IF NOT EXISTS` does not change its password. An administrator must reset only this project's dedicated account or use another dedicated account with the same limited grants. Do not use credentials from another project.
+Alternatively, execute the file in MySQL Workbench. If `student_app` already exists, `CREATE USER IF NOT EXISTS` does not change its password.
+
+For the reported MySQL 1045 case, connect in Workbench or the MySQL CLI as an authorized local MySQL administrator, then execute `database/schema.sql` after replacing its password placeholder locally. In Workbench, do not save the modified SQL file; for CLI use, make the temporary copy outside the repository and remove it afterward. After the schema script, execute the following as the same administrator, replacing the placeholder with that same new password. Never send the password in chat or commit it:
+
+```sql
+ALTER USER 'student_app'@'localhost' IDENTIFIED BY '<new-strong-local-password>';
+GRANT SELECT, INSERT, UPDATE, DELETE ON student_management.* TO 'student_app'@'localhost';
+```
+
+The `ALTER USER` step resets only this project's dedicated account. If it reports that the account does not exist, rerun the schema with its placeholder replaced, then reapply the grant. If 1045 continues, have the administrator inspect the matching account hosts with `SELECT user, host, plugin FROM mysql.user WHERE user = 'student_app';` and ensure the account host matches the JDBC connection. Do not change another project's accounts or reuse its credentials.
 
 ## Configure and run with MySQL
 
@@ -35,6 +44,8 @@ mvn -f backend/pom.xml spring-boot:run
 ```
 
 Spring Boot does not load `.env` automatically. `.env.example` is a reference only. Do not commit real credentials. For non-local MySQL, configure the host grant and JDBC URL deliberately.
+
+For a hosted database, override `DB_URL` with the provider's hostname and TLS settings. Prefer Connector/J `sslMode=VERIFY_IDENTITY` with the provider's trusted certificate chain; do not use the local-development URL's `useSSL=false` or `allowPublicKeyRetrieval=true` settings for a remote database. Connector/J documents `VERIFY_IDENTITY` as encrypted transport plus certificate and hostname verification ([MySQL Connector/J security properties](https://dev.mysql.com/doc/connector-j/en/connector-j-connp-props-security.html)).
 
 ## Optional isolated local H2 runtime
 

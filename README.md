@@ -89,7 +89,7 @@ node --test frontend/js/student-utils.test.mjs
 
 See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction between automated tests, live H2 API checks, browser checks, and MySQL integration status.
 
-**Verification on 2026-10-24:** the backend suite passed 6/6, Maven packaging passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including CRUD, search, validation, duplicate email, malformed input, missing IDs, and persistence after restart. Browser checks against that API covered create, search, view details, update, and confirmed deletion. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
+**Verification on 2026-10-24:** the backend suite passed 7/7, Maven packaging passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including CRUD, search, validation, duplicate email, malformed input, missing IDs, and persistence after restart. Browser checks against that API covered create, search, view details, update, and confirmed deletion. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
 
 ## Troubleshooting
 
