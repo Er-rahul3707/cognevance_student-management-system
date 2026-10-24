@@ -1,0 +1,13 @@
+target/
+**/target/
+.env
+*.log
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+node_modules/
+coverage/
+*.class
+
