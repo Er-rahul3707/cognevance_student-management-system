@@ -47,7 +47,7 @@ backend/       Spring Boot application, configuration, and H2-backed tests
 
 For MySQL, follow [docs/SETUP.md](docs/SETUP.md) to initialize the project database and dedicated app user. Spring Boot does not load `.env` files automatically; set environment variables in the same PowerShell terminal used to launch Maven. Hibernate validates the MySQL schema and does not modify it.
 
-Set the administrator credentials in the same PowerShell terminal before starting either profile. Use a unique username and a randomly generated password of 16–72 UTF-8 bytes. The password is held in that terminal's process environment; do not put a real value in a script or commit it.
+Set the administrator credentials in the same PowerShell terminal before starting either profile. Use a unique username and a randomly generated password of at least 16 Unicode characters and no more than 72 UTF-8 bytes. The password is held in that terminal's process environment; do not put a real value in a script or commit it.
 
 ```powershell
 $env:APP_AUTH_USERNAME = 'admin'
@@ -113,7 +113,7 @@ See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction be
 
 ## Security and limitations
 
-`.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. The backend refuses to start unless `APP_AUTH_USERNAME` is nonblank and `APP_AUTH_PASSWORD` is between 16 and 72 UTF-8 bytes. Basic authentication must be used only over HTTPS outside localhost. Credentials are BCrypt-encoded in memory on startup, and the browser keeps its Basic authorization value in page memory only (refresh signs out). Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or sorting and has no durable user management, authorization roles beyond administrator, audit history, managed migrations, or deployment automation. These are remaining production limitations.
+`.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. The backend refuses to start unless `APP_AUTH_USERNAME` is nonblank and `APP_AUTH_PASSWORD` contains at least 16 Unicode characters and no more than 72 UTF-8 bytes. Basic authentication must be used only over HTTPS outside localhost. Credentials are BCrypt-encoded in memory on startup, and the browser keeps its Basic authorization value in page memory only (refresh signs out). Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or sorting and has no durable user management, authorization roles beyond administrator, audit history, managed migrations, or deployment automation. These are remaining production limitations.
 
 ## Deployment preparation
 

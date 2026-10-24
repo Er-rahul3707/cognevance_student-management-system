@@ -11,7 +11,7 @@ This guide runs the existing Spring Boot API and static frontend on Windows. MyS
 
 ## Administrator sign-in
 
-The backend protects every route with HTTP Basic authentication. Set `APP_AUTH_USERNAME` to a nonblank local administrator name and `APP_AUTH_PASSWORD` to a unique random password of at least 16 characters in the same PowerShell terminal used to start Maven. The app BCrypt-encodes it in memory and does not persist a user record. The frontend prompts for these credentials; it retains the authorization header only in the current page memory and forgets it on refresh. A sign-in does not protect an unencrypted network connection: Basic authentication must only be used over HTTPS outside localhost. Do not put actual credentials in scripts, `.env.example`, tracked files, or chat.
+The backend protects every route with HTTP Basic authentication. Set `APP_AUTH_USERNAME` to a nonblank local administrator name and `APP_AUTH_PASSWORD` to a unique random password of at least 16 Unicode characters and no more than 72 UTF-8 bytes in the same PowerShell terminal used to start Maven. The app BCrypt-encodes it in memory and does not persist a user record. The frontend prompts for these credentials; it retains the authorization header only in the current page memory and forgets it on refresh. A sign-in does not protect an unencrypted network connection: Basic authentication must only be used over HTTPS outside localhost. Do not put actual credentials in scripts, `.env.example`, tracked files, or chat.
 
 ```powershell
 $env:APP_AUTH_USERNAME = 'admin'
@@ -91,7 +91,7 @@ Open [http://localhost:5500](http://localhost:5500). The API default is `http://
 | `SERVER_PORT` | `8080` | Spring Boot HTTP port; `PORT` is accepted as a hosting-platform fallback |
 | `CORS_ALLOWED_ORIGINS` | localhost:5500 and 127.0.0.1:5500 | Allowed frontend origins |
 | `APP_AUTH_USERNAME` | Required | Single administrator username |
-| `APP_AUTH_PASSWORD` | Required; 16–72 UTF-8 bytes | Administrator password, encoded with BCrypt in memory |
+| `APP_AUTH_PASSWORD` | Required; 16+ Unicode characters and at most 72 UTF-8 bytes | Administrator password, encoded with BCrypt in memory |
 
 ## Stop services
 

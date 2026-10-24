@@ -33,7 +33,8 @@ public class SecurityConfig {
             @Value("${app.auth.password}") String password,
             PasswordEncoder passwordEncoder) {
         int passwordBytes = password.getBytes(StandardCharsets.UTF_8).length;
-        if (username.isBlank() || username.contains(":") || password.length() < 16 || passwordBytes > 72) {
+        int passwordCharacters = password.codePointCount(0, password.length());
+        if (username.isBlank() || username.contains(":") || passwordCharacters < 16 || passwordBytes > 72) {
             throw new IllegalStateException("APP_AUTH_USERNAME must be set without ':' and APP_AUTH_PASSWORD must contain at least 16 characters and no more than 72 UTF-8 bytes");
         }
         return new InMemoryUserDetailsManager(User.withUsername(username)

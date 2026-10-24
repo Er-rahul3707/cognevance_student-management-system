@@ -66,6 +66,8 @@ class SecurityIntegrationTest {
         assertThrows(IllegalStateException.class,
                 () -> config.applicationUser("admin", "short", new BCryptPasswordEncoder()));
         assertThrows(IllegalStateException.class,
+                () -> config.applicationUser("admin", "😀".repeat(8), new BCryptPasswordEncoder()));
+        assertThrows(IllegalStateException.class,
                 () -> config.applicationUser("name:part", "test-password-long-enough", new BCryptPasswordEncoder()));
     }
 }
