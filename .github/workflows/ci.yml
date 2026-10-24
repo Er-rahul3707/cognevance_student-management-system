@@ -28,6 +28,8 @@ jobs:
           node-version: '20'
       - name: Run backend tests and package verification
         run: mvn -f backend/pom.xml verify
+      - name: Build production backend container
+        run: docker build --tag student-management-backend:ci .
       - name: Check frontend JavaScript
         run: |
           node --check frontend/js/app.js

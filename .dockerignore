@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+**/.env
+**/.env.*
+**/target
+backend/data
+frontend
+docs
+screenshots
+**/*.pdf
+*.log
+node_modules
