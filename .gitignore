@@ -19,3 +19,4 @@ Thumbs.db
 *.class
 node_modules/
 coverage/
+*.pdf
