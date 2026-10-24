@@ -10,9 +10,11 @@ A Java full-stack student directory for maintaining enrollment records through a
 - Directory controls for course filtering and sorting the current result set by newest, oldest, name, or course.
 - Field-specific validation feedback, an in-app delete confirmation, and sign-out that clears the page's in-memory authorization header.
 - Environment-based database and CORS configuration; no credentials are required in source files.
-- HTTP Basic administrator authentication for every backend route, with BCrypt-encoded in-memory credentials from environment variables and a browser sign-in form.
+- CORS configuration rejects empty and wildcard origins; set the exact frontend origin when hosting.
+- HTTP Basic administrator authentication for all student API routes, with BCrypt-encoded in-memory credentials from environment variables and a browser sign-in form.
+- Status-only `/actuator/health` endpoint for service probes; student API routes stay authenticated.
 
-The API requires the configured single administrator account. The credential is loaded from environment variables and never persisted as an application user. This is suitable for a controlled local demo; use HTTPS, managed identity lifecycle, rate limiting, and a durable user store before a public deployment.
+The student API requires the configured single administrator account. The credential is loaded from environment variables and never persisted as an application user. The only public route is the status-only health probe. This is suitable for a controlled local demo; use HTTPS, managed identity lifecycle, rate limiting, and a durable user store before a public deployment.
 
 ## Technology and architecture
 
@@ -25,6 +27,31 @@ The API requires the configured single administrator account. The credential is 
 
 The browser calls the REST controller. DTO validation and service rules are applied before JPA persistence. Responses use DTOs, and centralized exception handling returns consistent JSON errors. See [architecture](docs/ARCHITECTURE.md), [setup](docs/SETUP.md), and [API reference](docs/API.md).
 
+```mermaid
+flowchart LR
+  UI[HTML CSS JavaScript dashboard] -->|HTTPS + Basic Auth + JSON| API[Spring Security and REST API]
+  API --> VALID[Jakarta validation]
+  VALID --> SERVICE[Student service]
+  SERVICE --> JPA[Spring Data JPA]
+  JPA --> MYSQL[(MySQL default)]
+  JPA -. explicitly selected local profile .-> H2[(File-backed H2)]
+```
+
+```mermaid
+sequenceDiagram
+  actor Admin
+  participant Browser
+  participant API as Spring Boot API
+  participant DB as Configured database
+  Admin->>Browser: Sign in with local administrator credentials
+  Browser->>API: GET /api/students with Basic authorization
+  API->>API: Authenticate and validate request
+  API->>DB: Read or modify student records
+  DB-->>API: Persisted result
+  API-->>Browser: JSON response or structured validation error
+  Browser-->>Admin: Update directory, message, or field errors
+```
+
 ## Project structure
 
 ```text
@@ -33,8 +60,9 @@ backend/       Spring Boot application, configuration, and H2-backed tests
   src/test/    automated backend tests
   data/        ignored local-H2 files, created only by the local-h2 profile
  database/     MySQL schema and least-privilege application user setup
- docs/         architecture, API, setup, and verification notes
+ docs/         architecture, API, setup, testing, and deployment notes
  frontend/     static dashboard, styles, and utility tests
+ .github/      build and test workflow
 .env.example  safe local variable template
 ```
 
@@ -88,6 +116,23 @@ Base URL: `http://localhost:8080/api`. See [docs/API.md](docs/API.md) for fields
 | PUT | `/students/{id}` | Update a record | 200 |
 | DELETE | `/students/{id}` | Delete a record | 204 |
 
+The infrastructure probe `GET /actuator/health` is separate from student APIs. It returns only an overall status and is intentionally accessible without administrator credentials; component details are not exposed.
+
+## Database model
+
+```mermaid
+erDiagram
+  STUDENTS {
+    BIGINT id PK
+    VARCHAR full_name
+    VARCHAR email UK
+    VARCHAR phone
+    VARCHAR course
+    DATE enrollment_date
+    TIMESTAMP created_at
+  }
+```
+
 ## Tests and current verification
 
 Run backend and frontend checks from the repository root:
@@ -102,7 +147,7 @@ node --test frontend/js/student-utils.test.mjs
 
 See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction between automated tests, live H2 API checks, browser checks, and MySQL integration status.
 
-**Previously recorded verification (2026-10-25):** backend tests passed 13/13, Maven package passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including anonymous 401, authenticated CRUD, search, invalid-input 400, delete 204, missing-after-delete 404, and cleanup. See [TESTING.md](docs/TESTING.md) for these recorded results and the additional verification run for the current revision. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
+**Verification (2026-10-25):** Maven tests, packaging, frontend syntax checks, and utility tests were rerun for this release; see [TESTING.md](docs/TESTING.md) for exact results, including the status-only health endpoint test. The earlier live Spring Boot API workflow against explicitly selected file-backed H2 verified anonymous 401, authenticated CRUD, search, invalid-input 400, delete 204, missing-after-delete 404, and cleanup. MySQL 8 is installed/running, but the project app account previously received error 1045; real MySQL connection/CRUD remain unverified.
 
 ## Troubleshooting
 
@@ -119,7 +164,7 @@ See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction be
 
 ## Deployment preparation
 
-The application can be prepared for a demo host by serving the static frontend separately and running the Spring Boot jar with a persistent remote MySQL database. Set `APP_AUTH_USERNAME`, `APP_AUTH_PASSWORD`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `CORS_ALLOWED_ORIGINS`, and the host-provided `PORT` (or `SERVER_PORT`) as environment variables; use HTTPS and MySQL Connector/J `sslMode=VERIFY_IDENTITY` for remote database connections. Do not use the local H2 file profile on ephemeral hosts. This repository has no deployment configuration and has not been deployed. The current single-account Basic authentication is not a complete multi-user production identity system; free tiers are demonstration infrastructure, not production availability guarantees.
+See [deployment readiness](docs/DEPLOYMENT.md) for current hosting constraints, environment configuration, and release checks. The project is not deployed and has no live URL. A GitHub Actions workflow is configured; its run status must be checked on GitHub separately.
 
 ## Screenshots
 
@@ -127,6 +172,6 @@ The sign-in view below is a genuine Chrome capture of the locally served applica
 
 ![Administrator sign-in screen](screenshots/sign-in.png)
 
-## License and author
+## License and project details
 
-See the [MIT License](LICENSE).
+Project: Java full-stack student administration internship/portfolio application. Author: [Er-rahul3707](https://github.com/Er-rahul3707). See the repository's [MIT License](LICENSE).

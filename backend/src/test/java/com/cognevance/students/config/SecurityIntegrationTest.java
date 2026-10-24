@@ -8,12 +8,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -28,6 +31,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class SecurityIntegrationTest {
     @Autowired MockMvc mvc;
+
+    @Test
+    void exposesOnlyMinimalHealthStatusWithoutAuthentication() throws Exception {
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.components").doesNotExist());
+    }
 
     @Test
     void rejectsMissingOrIncorrectCredentialsAndAllowsConfiguredAdmin() throws Exception {
@@ -69,5 +80,14 @@ class SecurityIntegrationTest {
                 () -> config.applicationUser("admin", "😀".repeat(8), new BCryptPasswordEncoder()));
         assertThrows(IllegalStateException.class,
                 () -> config.applicationUser("name:part", "test-password-long-enough", new BCryptPasswordEncoder()));
+    }
+
+    @Test
+    void rejectsWildcardOrEmptyCorsOrigins() {
+        WebConfig config = new WebConfig();
+        ReflectionTestUtils.setField(config, "allowedOrigins", "*");
+        assertThrows(IllegalStateException.class, () -> config.addCorsMappings(new CorsRegistry()));
+        ReflectionTestUtils.setField(config, "allowedOrigins", " , ");
+        assertThrows(IllegalStateException.class, () -> config.addCorsMappings(new CorsRegistry()));
     }
 }

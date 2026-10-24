@@ -2,6 +2,8 @@
 
 Base URL: `http://localhost:8080/api`. All request and response bodies are JSON except DELETE, which returns an empty body. Search is case-insensitive for name, email, and course and also matches the decimal student ID. Results are ordered by descending ID. The API currently has no pagination or sort parameters.
 
+The infrastructure probe `GET http://localhost:8080/actuator/health` is outside the `/api` base path. It is intentionally unauthenticated for hosting probes and exposes only the aggregate health status (for example `{"status":"UP"}`), without component details. Student API paths remain protected by HTTP Basic authentication.
+
 All routes require HTTP Basic administrator authentication configured with `APP_AUTH_USERNAME` and `APP_AUTH_PASSWORD`; requests without valid credentials return 401. For local PowerShell use, read the password securely and construct a temporary Basic authorization header:
 
 ```powershell
