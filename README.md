@@ -1,172 +1,113 @@
 # Cognevance Student Management System
 
-A Java full-stack student directory for creating, searching, viewing, updating, and deleting enrollment records. The browser dashboard uses a Spring Boot REST API and MySQL database. The project is designed as a small internship submission; it does not include authentication or production deployment.
-
-## Table of contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Technology](#technology)
-- [Architecture](#architecture)
-- [Project structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Local setup and run](#local-setup-and-run)
-- [API reference](#api-reference)
-- [Testing](#testing)
-- [Demonstration](#demonstration)
-- [Troubleshooting](#troubleshooting)
-- [Security notes](#security-notes)
-- [Limitations and future work](#limitations-and-future-work)
-- [Contributing](#contributing)
-- [License](#license)
-- [Author](#author)
-
-## Overview
-
-The application provides a simple interface to maintain student enrollment details in one persistent directory. A user can search records by name, email, course, or numeric ID, see enrollment statistics, and manage each record through the API-backed UI.
+A Java full-stack student directory for maintaining enrollment records through a responsive browser dashboard and a Spring Boot REST API. MySQL 8 is the default runtime database. An explicit local H2 profile is available for isolated development and runtime checks when MySQL administrator setup is unavailable; it does not alter the default MySQL configuration.
 
 ## Features
 
-- Create, view, edit, and delete student records.
-- Search across student name, email, course, and numeric student ID.
-- Validate required fields, email, phone format, and enrollment date.
-- Prevent duplicate email addresses case-insensitively and store emails in lowercase.
-- Responsive dashboard with totals, distinct course count, and this-month enrollment count.
-- Loading and empty states, accessible labels, focused dialogs, confirmation on delete, and feedback toasts.
-- JSON API errors with field-level validation messages and generic server errors.
-- Environment-based backend configuration and explicit CORS origins.
+- Create, view, update, delete, and search student records by name, email, course, or numeric ID.
+- Server-side validation, case-insensitive duplicate email protection, useful field errors, and appropriate HTTP status codes.
+- Responsive dashboard with loading, empty, success, and error states, student details, and confirmation before deletion.
+- Environment-based database and CORS configuration; no credentials are required in source files.
 
-Pagination, sorting, authentication, and role-based access are not implemented.
+Authentication, authorization, pagination, and deployment are outside the current project scope. Do not expose this application publicly with real student data without adding access controls.
 
-## Technology
+## Technology and architecture
 
 | Area | Stack |
 | --- | --- |
 | Backend | Java 17, Spring Boot 3.3.5, Spring Web, Spring Data JPA, Jakarta Validation |
-| Persistence | MySQL 8; H2 only for automated tests |
+| Runtime database | MySQL 8 (default); opt-in file-backed H2 profile for local development |
 | Frontend | HTML, CSS, vanilla JavaScript modules |
-| Build and tests | Maven, JUnit 5, Spring MockMvc, Node.js built-in test runner |
+| Verification | Maven, JUnit 5, Spring MockMvc, Node.js built-in test runner |
 
-## Architecture
-
-The browser sends JSON requests to the Spring MVC controller. Request DTO validation and service rules run before the repository persists entities with JPA. Responses use a dedicated DTO; shared exception handling returns a consistent error object. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The browser calls the REST controller. DTO validation and service rules are applied before JPA persistence. Responses use DTOs, and centralized exception handling returns consistent JSON errors. See [architecture](docs/ARCHITECTURE.md), [setup](docs/SETUP.md), and [API reference](docs/API.md).
 
 ## Project structure
 
 ```text
-backend/       Spring Boot application, configuration, and integration tests
-  src/main/    API, domain, persistence, and shared errors
-  src/test/    H2-backed API integration tests
-database/      MySQL database, user, and table bootstrap SQL
-docs/          Architecture, API, setup, and test documentation
-frontend/      Static dashboard, styles, and frontend utility tests
-.env.example   Local environment variable template
+backend/       Spring Boot application, configuration, and H2-backed tests
+  src/main/    API, domain, persistence, and error handling
+  src/test/    automated backend tests
+  data/        ignored local-H2 files, created only by the local-h2 profile
+ database/     MySQL schema and least-privilege application user setup
+ docs/         architecture, API, setup, and verification notes
+ frontend/     static dashboard, styles, and utility tests
+.env.example  safe local variable template
 ```
 
 ## Prerequisites
 
-- JDK 17 or newer.
-- Maven 3.6 or newer.
-- MySQL 8.x for the application runtime.
+- JDK 17 or newer, Maven 3.6 or newer.
+- MySQL 8.x for the default runtime configuration, or use the opt-in H2 profile for local development.
 - Python 3 (or another static HTTP server) to serve the frontend.
-- Node.js 18 or newer to run the frontend checks.
+- Node.js 18 or newer for frontend checks.
 
-## Local setup and run
+## Run locally
 
-Follow [docs/SETUP.md](docs/SETUP.md) to create the MySQL database and application user. The SQL script contains a clearly marked placeholder password; replace it locally before execution. Set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `CORS_ALLOWED_ORIGINS` in the backend terminal. Spring Boot does not load `.env` files automatically. Hibernate validates the existing schema at startup; it does not create or alter tables.
+For MySQL, follow [docs/SETUP.md](docs/SETUP.md) to initialize the project database and dedicated app user. Spring Boot does not load `.env` files automatically; set environment variables in the same PowerShell terminal used to launch Maven. Hibernate validates the MySQL schema and does not modify it.
 
-Start the backend from the repository root:
+For a local isolated H2 runtime, run from the repository root:
 
 ```powershell
-mvn -f backend/pom.xml spring-boot:run
+mvn -f backend/pom.xml -Plocal-h2 spring-boot:run '-Dspring-boot.run.profiles=local-h2'
 ```
 
-In a second terminal, serve the frontend:
+This profile uses a persistent file database under ignored `backend/data/`. It is opt-in and does not replace or modify the MySQL defaults. To run against MySQL, omit `-Plocal-h2` and the profile argument.
+
+In another PowerShell terminal, serve the frontend:
 
 ```powershell
 python -m http.server 5500 --directory frontend
 ```
 
-Open [http://localhost:5500](http://localhost:5500). The default API URL is `http://localhost:8080/api`. For another API host, set `window.STUDENT_API_BASE_URL` in `frontend/index.html` before the module loads and set the backend `CORS_ALLOWED_ORIGINS` to the frontend's exact origin. Never put database credentials in frontend code.
+Open [http://localhost:5500](http://localhost:5500). The default API base URL is `http://localhost:8080/api`. For a different API origin, configure `window.STUDENT_API_BASE_URL` in `frontend/index.html` and allow that exact frontend origin with `CORS_ALLOWED_ORIGINS`. Never put database credentials in frontend files.
 
-## API reference
+## API
 
-The base URL is `http://localhost:8080/api`. Dates use ISO `YYYY-MM-DD`. Full request/response details and examples are in [docs/API.md](docs/API.md).
+Base URL: `http://localhost:8080/api`. See [docs/API.md](docs/API.md) for fields, examples, and error format.
 
 | Method | Endpoint | Purpose | Success |
 | --- | --- | --- | --- |
-| GET | `/students` | List students, newest ID first | 200 |
-| GET | `/students?q=asha` | Search name, email, course, or ID | 200 |
-| GET | `/students/{id}` | Read one student | 200 |
-| POST | `/students` | Create a student | 201 |
-| PUT | `/students/{id}` | Update a student | 200 |
-| DELETE | `/students/{id}` | Delete a student | 204 |
+| GET | `/students` | List students | 200 |
+| GET | `/students?q=asha` | Search records | 200 |
+| GET | `/students/{id}` | Retrieve one record | 200 |
+| POST | `/students` | Create a record | 201 |
+| PUT | `/students/{id}` | Update a record | 200 |
+| DELETE | `/students/{id}` | Delete a record | 204 |
 
-Example create request:
+## Tests and current verification
 
-```powershell
-$body = @{ fullName = 'Asha Patel'; email = 'asha@example.com'; phone = '+91 98765 43210'; course = 'Computer Science'; enrollmentDate = '2025-01-10' } | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri 'http://localhost:8080/api/students' -ContentType 'application/json' -Body $body
-```
-
-The server generates `id` and `createdAt`. A duplicate email returns 409, invalid input returns 400, an unknown ID returns 404, and database access errors return a generic 503.
-
-## Testing
-
-Run these commands from the repository root:
+Run backend and frontend checks from the repository root:
 
 ```powershell
 mvn -f backend/pom.xml test
 mvn -f backend/pom.xml package
-npm --prefix frontend run check
-npm --prefix frontend test
-```
-
-If `npm` is unavailable but Node.js is installed, run the frontend checks directly:
-
-```powershell
 node --check frontend/js/app.js
 node --check frontend/js/student-utils.mjs
 node --test frontend/js/student-utils.test.mjs
 ```
 
-The backend test profile uses an in-memory H2 database. It verifies API behavior but does not prove MySQL connectivity or MySQL-specific compatibility. See [docs/TESTING.md](docs/TESTING.md) for the latest actual results and environment limits.
+See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction between automated tests, live H2 API checks, browser checks, and MySQL integration status.
 
-**Latest verification (2026-10-24):** `mvn -f backend/pom.xml test` passed (6/6); frontend JavaScript syntax checks and utility tests passed (5/5). MySQL 8 is installed and running locally, but the dedicated app-user login was rejected with MySQL error 1045 and no administrator login was available. The backend could not start against the project's isolated database. The frontend rendered in the browser, but the API request failed; no live CRUD or MySQL integration is claimed. See [docs/TESTING.md](docs/TESTING.md) for details and the required local setup action.
-
-## Demonstration
-
-Once MySQL credentials are configured and the API starts, the dashboard should display the current directory. Add a student, search by each supported field, open its details, edit it, try a duplicate email, then delete it with the confirmation prompt. In the 2026-10-24 runtime check, the frontend loaded but could not reach the API because the local database login was unavailable; no live CRUD session or runtime screenshot is claimed.
+**Verification on 2026-10-24:** the backend suite passed 6/6, Maven packaging passed, and frontend utility tests passed 5/5. A live Spring Boot API workflow passed against the explicitly selected file-backed H2 profile, including CRUD, search, validation, duplicate email, malformed input, missing IDs, and persistence after restart. Browser checks against that API covered create, search, view details, update, and confirmed deletion. MySQL 8 is installed/running, but the project app account receives MySQL error 1045 and administrator credentials were unavailable; therefore real MySQL connection/CRUD remain unverified. Do not treat H2 checks as MySQL verification.
 
 ## Troubleshooting
 
-- **API fails to start with a schema validation error:** Run `database/schema.sql` against the intended `student_management` MySQL database and confirm it contains the `students` table.
-- **Access denied:** Check local `DB_USERNAME` and `DB_PASSWORD` values and the MySQL user's host grant. Do not use unrelated database credentials.
-- **MySQL error 1045 for `student_app`:** Use a local MySQL administrator in Workbench or the CLI to run `database/schema.sql` after replacing its password placeholder, then set matching `DB_USERNAME` and `DB_PASSWORD` variables for the application. `CREATE USER IF NOT EXISTS` does not change the password of an account that already exists; reset only this project's dedicated account or choose another dedicated account and grant it DML access to `student_management`.
-- **Frontend cannot reach the API:** Confirm the API is listening on port 8080 and that `CORS_ALLOWED_ORIGINS` exactly matches the frontend origin, including port.
-- **Port already in use:** Change `SERVER_PORT` for the API or serve the frontend on another port and update CORS accordingly.
-- **`npm` command is unavailable:** Install Node.js 18+ (which includes npm), or if `node` is available run the direct checks in the [testing section](#testing).
+- **MySQL schema validation failure:** use an authorized administrator to run `database/schema.sql` on the intended `student_management` schema.
+- **MySQL error 1045:** verify credentials and account host grants locally. Do not reuse another project's database credentials. See [docs/SETUP.md](docs/SETUP.md).
+- **Local H2 startup:** include both `-Plocal-h2` and `'-Dspring-boot.run.profiles=local-h2'`; generated files are stored under ignored `backend/data/`.
+- **Frontend cannot reach API:** ensure the backend is listening on 8080 and `CORS_ALLOWED_ORIGINS` exactly matches the frontend origin.
+- **Port conflict:** set `SERVER_PORT` or use another static-server port, then update CORS.
+- **No npm on PATH:** the direct Node commands above run the existing utility tests without npm.
 
-## Security notes
+## Security and limitations
 
-- `.env` is ignored by Git; `.env.example` contains only a placeholder. Set real credentials through local environment variables or a secret manager.
-- The application account should have only the permissions needed to read and modify records. The provided SQL script creates the schema/table as an administrator; its app user receives DML grants only.
-- Do not place real student records in source control or screenshots.
-- CORS is not authentication. The application has no user login or authorization and should not be exposed publicly with real student data as-is.
-- Use TLS, network restrictions, backups, managed migrations, and access control before any production use.
+`.env` and `backend/data/` are ignored by Git; `.env.example` contains placeholders only. Use a dedicated least-privilege database account. Avoid real student data in tests, source control, or screenshots. CORS is not authentication. The API currently returns all matching rows without pagination or sorting, and it has no authentication, authorization, audit history, managed migrations, or deployment automation. These are limitations, not production assurances.
 
-## Limitations and future work
+## Screenshots
 
-The API returns the full matching result set with no pagination or sorting. Dashboard statistics are computed client-side from the fetched full list. Authentication, authorization, audit history, migrations, and deployment automation are not included. Those are potential next steps if the project scope expands.
+No screenshots are committed. The local browser verification used synthetic test data and was not captured as a project screenshot.
 
-## Contributing
+## License and author
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the local workflow and verification expectations.
-
-## License
-
-The project includes an [MIT License](LICENSE).
-
-## Author
-
-**Rahul Chandra Sharma**
+See the [MIT License](LICENSE). Author: **Rahul Chandra Sharma**.
