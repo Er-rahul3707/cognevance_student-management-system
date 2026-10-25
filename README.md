@@ -168,7 +168,7 @@ See [deployment readiness](docs/DEPLOYMENT.md) for current hosting constraints, 
 
 ## Screenshots
 
-The sign-in view below is a genuine Chrome capture of the locally served application. Administrator credentials were not entered into browser automation, so authenticated dashboard and CRUD views are not represented. No student personal data or credentials appear in the image.
+The sign-in view below is a genuine Chrome capture of the locally served application; it contains no credentials or student data. Authenticated dashboard and CRUD behavior was exercised separately with synthetic data; see [TESTING.md](docs/TESTING.md).
 
 ![Administrator sign-in screen](screenshots/sign-in.png)
 
