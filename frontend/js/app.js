@@ -62,6 +62,7 @@ async function signIn(event) {
     authorization = candidate;
     sessionEpoch.invalidate();
     document.getElementById('accountName').textContent = String(username);
+    document.getElementById('accountStatus').textContent = 'Signed in';
     loginForm.reset();
     loginDialog.close();
     await loadStudents();
@@ -220,6 +221,7 @@ function clearProtectedView() {
   students = [];
   matchedStudents = [];
   document.getElementById('accountName').textContent = 'Administrator';
+  document.getElementById('accountStatus').textContent = 'Signed out';
   loginForm.reset();
   document.getElementById('searchInput').value = '';
   document.getElementById('sortSelect').value = 'newest';
