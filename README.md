@@ -147,7 +147,7 @@ node --test frontend/js/student-utils.test.mjs
 
 See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction between automated tests, live H2 API checks, browser checks, and MySQL integration status.
 
-**Verification (2026-10-25):** Maven tests, packaging, frontend syntax checks, and utility tests were rerun for this release; see [TESTING.md](docs/TESTING.md) for exact results, including the status-only health endpoint test. The earlier live Spring Boot API workflow against explicitly selected file-backed H2 verified anonymous 401, authenticated CRUD, search, invalid-input 400, delete 204, missing-after-delete 404, and cleanup. MySQL 8 is installed/running, but the project app account previously received error 1045; real MySQL connection/CRUD remain unverified.
+**Verification (2026-10-25):** Maven verification passed (15 tests; package succeeded), Node syntax checks passed, and all 8 frontend utility tests passed. The real local UI was tested with the explicitly selected H2 profile: login, empty state, invalid email form validation, synthetic student create/list/search/course filter/details/edit/delete, logout, and rejected credentials. Browser console had no errors or warnings. A mobile-width overflow in the visually hidden table heading was fixed and the document now fits a 390px viewport; the wide student table remains scrollable within its wrapper. MySQL remains **not verified**: its service is running, but the project account previously received error 1045. See [TESTING.md](docs/TESTING.md) for the scope and evidence.
 
 ## Troubleshooting
 

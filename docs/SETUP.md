@@ -49,7 +49,7 @@ The `ALTER USER` step resets only this project's dedicated account. If it report
 Set variables in the same PowerShell terminal where Maven runs (use the local password selected for the project account):
 
 ```powershell
-$env:DB_URL = 'jdbc:mysql://localhost:3306/student_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+$env:DB_URL = 'jdbc:mysql://localhost:3306/student_management?serverTimezone=UTC'
 $env:DB_USERNAME = 'student_app'
 $env:DB_PASSWORD = 'your-local-password'
 $env:SERVER_PORT = '8080'

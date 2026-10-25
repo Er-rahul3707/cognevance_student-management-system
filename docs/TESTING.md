@@ -29,15 +29,16 @@ The earlier live HTTP workflow verified: initial empty list; POST create (201); 
 
 ## Manual browser verification
 
-Before administrator authentication was added, the frontend was served at `http://localhost:5500` and browser automation exercised create, search by course, student details, update, and confirmed deletion against the local H2 API. This historical run does not verify the current authenticated UI. For the current revision, the static frontend server returned HTTP 200, and Chrome headless captured the real sign-in view at `screenshots/sign-in.png` (1440 × 1000); the image was opened and visually checked. Administrator credentials were not entered into browser automation, so sign-in success and authenticated browser CRUD were not tested in this run. The current frontend JavaScript and pure list utility functions are syntax/test checked; authenticated CRUD remains verified over HTTP only, not through a browser. Narrow-screen capture and browser console/network inspection were not performed.
+The frontend was served at `http://localhost:5500` and the Spring Boot backend ran on `http://127.0.0.1:8080` with the explicitly selected, isolated local H2 profile and temporary test-only administrator credentials. Browser automation completed login; checked the initial empty state; attempted an invalid email (native required/type validation prevented submission); created a synthetic student; verified the rendered list and dashboard totals; searched by email; filtered by course; opened details; edited the record and saw the updated values; opened the delete confirmation; confirmed deletion; and verified the empty state returned. Logout returned to the sign-in dialog, and a deliberately incorrect login showed a generic rejection message. Synthetic browser test data was deleted.
+
+At a 390 × 844 viewport, the page initially had a 756px document scroll width because `.sr-only` lacked an explicit absolute position origin inside the table. Adding `left: 0; top: 0` removed document-level overflow: `document.documentElement.scrollWidth` measured 390px after the fix. The table itself remains horizontally scrollable inside `.table-wrap`, as intended. Browser console inspection reported zero warnings/errors during the tested workflow. This was local browser QA against H2, not MySQL.
 
 ## Commands
 
 Run from the repository root:
 
 ```powershell
-mvn -f backend/pom.xml test
-mvn -f backend/pom.xml package
+mvn -f backend/pom.xml verify
 node --check frontend/js/app.js
 node --check frontend/js/student-utils.mjs
 node --test frontend/js/student-utils.test.mjs

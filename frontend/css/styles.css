@@ -6,6 +6,7 @@
 
 /* Interaction and responsive refinements for the authenticated directory. */
 .sidebar-bottom{min-width:0}.account-summary{min-width:0;flex:1}.account-summary strong{max-width:115px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sidebar-bottom #logoutButton{padding:6px 8px;font-size:10px;white-space:nowrap}
+.sr-only{left:0;top:0}
 .topbar .avatar-small{font-size:10px}
 .toolbar-select{display:flex;align-items:center;gap:7px;color:#85899b;font-size:10px;white-space:nowrap}
 .toolbar-select select{height:36px;max-width:160px;border:1px solid #e7e9ef;border-radius:7px;background:#fff;padding:0 26px 0 9px;color:#505367;font:11px 'DM Sans',sans-serif}
