@@ -1,62 +1,67 @@
-# Deployment readiness
+# Deploy to Render
 
-**Status: not deployed.** No hosting resources were created, and there is no live application URL. This guide describes a safe deployment shape; it does not provision services or publish credentials.
+**Deployment status: not deployed.** The earlier Hibernate error is a database configuration failure, not a missing Hibernate dialect. This application is MySQL-only: it reads `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`. If `DB_URL` is missing it falls back to `localhost`, which is the Render app container itself; Render cannot reach a MySQL server on your PC. A Render Postgres `DATABASE_URL` is also not a MySQL JDBC URL and cannot be used by this build.
 
-## Current application constraints
+The repository now has a Render Blueprint at [`render.yaml`](../render.yaml). It builds one Docker web service that serves both the Spring Boot API and the frontend from the same HTTPS origin. This avoids a separate frontend/API CORS configuration. The Blueprint deliberately prompts for secrets and a MySQL URL; it does not create the database or deploy anything until you create the Blueprint in Render.
 
-- The frontend is static HTML/CSS/JavaScript and can be served from a static-site host.
-- The backend is a Spring Boot 3.5.x Java 17 service. It listens on `PORT` when provided, otherwise `SERVER_PORT`/8080.
-- The repository root contains a multi-stage `Dockerfile` for the backend. It builds the existing Maven application and runs the packaged JAR as a non-root user. CI builds this image; a local Docker build has not been run in this environment because Docker is unavailable.
-- MySQL is the default production database. The local H2 profile is file-backed and must not run on an ephemeral host filesystem.
-- `GET /actuator/health` exposes only the aggregate health status for a host probe. Student endpoints remain protected by HTTP Basic.
-- Administrator credentials are a single in-memory account sourced from environment variables. There is no persistent user store, password rotation UI, rate limiting, audit trail, or fine-grained role model. That is a material limitation for public production use.
-- MySQL integration has not been verified in this environment because the existing local account failed with MySQL error 1045. Deployment must wait until a persistent MySQL service and valid dedicated account are provisioned and tested.
+## Required Render resources
 
-## Hosting option assessment
+The application needs a reachable MySQL 8 database. Create a MySQL private service in the same Render workspace and region as the web service. Render's MySQL guide uses a Docker-based private service and a persistent disk mounted at `/var/lib/mysql`; persistent database storage can incur a charge. Review the current [Render MySQL guide](https://render.com/docs/deploy-mysql), [disk documentation](https://render.com/docs/disks), and pricing before creating resources.
 
-For a low-cost demonstration, the static frontend and Java API can be hosted as separate services, with a separate persistent MySQL database. Render currently offers free static sites and free web services, but its free web services spin down after 15 minutes idle and have an ephemeral filesystem; free services cannot attach persistent disks. Its free relational database offering is PostgreSQL and expires after 30 days, so it does not meet this application's MySQL requirement. Render supports Docker-based web services, and this repository now includes a root-level backend Dockerfile. A persistent MySQL service on Render uses a disk-backed custom service; review current compute and disk prices in the provider dashboard before creating resources. See [Render free services and their limits](https://render.com/docs/free), [Docker web services](https://render.com/docs/docker), [MySQL deployment](https://render.com/docs/deploy-mysql), and [persistent disks](https://render.com/docs/disks).
+On first initialization, configure the MySQL service with:
 
-Therefore, a fully persistent, no-cost Render deployment of this unchanged MySQL application is not established. A demo is possible only if an independently selected MySQL provider offers suitable persistent storage, network access, and TLS at no cost; verify that provider's current terms and connection requirements before use. A paid persistent MySQL service is another option, but no paid resources should be created without explicit authorization. Free hosting is not a production availability guarantee.
-
-## Required deployment configuration
-
-Build and test the service using the repository's tested Java version:
-
-```powershell
-mvn -f backend/pom.xml clean verify
-```
-
-The production image can be built from the repository root with `docker build -t student-management-backend .`. It listens on the platform-assigned `PORT` or falls back to `SERVER_PORT`/8080. The image build is part of GitHub Actions; it is not evidence that a hosting resource was created or deployed.
-
-Run the packaged artifact with these host-provided environment variables (values belong in the host's secret manager, not in source control):
-
-| Variable | Requirement |
+| MySQL service variable | Value |
 | --- | --- |
-| `PORT` or `SERVER_PORT` | Platform-assigned listening port; the application already honors `PORT` |
-| `APP_AUTH_USERNAME` | Nonblank administrator username without `:` |
-| `APP_AUTH_PASSWORD` | At least 16 Unicode characters and no more than 72 UTF-8 bytes |
-| `DB_URL` | Remote MySQL JDBC URL with the provider's host and TLS verification, e.g. Connector/J `sslMode=VERIFY_IDENTITY` |
-| `DB_USERNAME` / `DB_PASSWORD` | Dedicated least-privilege account; never use a database administrator account |
-| `CORS_ALLOWED_ORIGINS` | Exact HTTPS origin serving the frontend; no wildcard |
+| `MYSQL_DATABASE` | `student_management` |
+| `MYSQL_USER` | `student_app` |
+| `MYSQL_PASSWORD` | A newly generated database password |
+| `MYSQL_ROOT_PASSWORD` | A separate newly generated administrator password |
 
-For example, set the remote JDBC URL in the hosting dashboard in this form, substituting the actual provider endpoint:
+Keep the MySQL service private; do not expose its port publicly. Add a persistent disk mounted at `/var/lib/mysql`. Render documents the internal connection hostname on the MySQL service page; it has a form such as `mysql-example:3306`.
 
-```text
-jdbc:mysql://<mysql-host>:3306/student_management?serverTimezone=UTC&sslMode=VERIFY_IDENTITY
+Create the application table once after MySQL starts. In the MySQL service Shell, connect locally as its administrator (`mysql -u root -p`), enter the root password at the prompt, and run:
+
+```sql
+USE student_management;
+CREATE TABLE IF NOT EXISTS students (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(120) NOT NULL,
+  email VARCHAR(180) NOT NULL,
+  phone VARCHAR(30),
+  course VARCHAR(100) NOT NULL,
+  enrollment_date DATE NOT NULL,
+  created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  CONSTRAINT uk_students_email UNIQUE (email)
+);
 ```
 
-For a Docker-based web service, use the repository root as the build context; the image entrypoint starts the packaged application. For a non-Docker Java service, run `java -jar backend/target/student-management-1.0.0.jar` after `mvn -f backend/pom.xml -DskipTests package`. Do not set `spring.jpa.hibernate.ddl-auto=update` for production; the default MySQL configuration uses `validate`, and schema changes remain operator-managed through a reviewed migration/setup procedure. Do not use `useSSL=false`, `allowPublicKeyRetrieval=true`, an embedded H2 file, or an ephemeral local filesystem for hosted student data.
+The MySQL image creates the configured `MYSQL_USER` for the configured database on first initialization. Do not run the local-only `database/schema.sql` unchanged on Render: its account host is `localhost`, which is not the application container. The application expects the account created for the MySQL service.
 
-Serve the `frontend/` directory as a static site over HTTPS. Before deployment, configure `window.STUDENT_API_BASE_URL` to the API's HTTPS `/api` base URL and set `CORS_ALLOWED_ORIGINS` to that exact frontend origin. Ensure the database accepts traffic only from the backend service or trusted network and supports verified TLS.
+## Create the web service
 
-## Readiness checks before any public release
+1. In Render, choose **New → Blueprint** and select this repository's `main` branch. Render reads `render.yaml` and builds the root `Dockerfile`.
+2. In the Blueprint environment form, set `DB_URL` to the MySQL service's **internal** hostname, for example `jdbc:mysql://mysql-example:3306/student_management?serverTimezone=UTC`. Replace the host with the actual private hostname shown by Render. Do not use `localhost`, a PostgreSQL URL, or a URL copied from another project.
+3. Supply `DB_PASSWORD`, `APP_AUTH_USERNAME`, and `APP_AUTH_PASSWORD` in Render's secret prompts. Use the same MySQL password configured as `MYSQL_PASSWORD`; create a separate administrator password of at least 16 characters and no more than 72 UTF-8 bytes. `DB_USERNAME` is set to `student_app` in the Blueprint.
+4. Choose a web-service plan and review the price before creating it. The Blueprint sets the health check path to `/actuator/health` and the Render port to `10000`.
+5. Create the service only after the MySQL instance is reachable and the schema exists. The app keeps Hibernate `ddl-auto=validate`, so it will fail startup rather than silently alter a production schema.
 
-1. Provision an authorized persistent MySQL 8 service and resolve the existing MySQL 1045 issue using its database administrator and the documented `database/schema.sql` procedure.
-2. Verify MySQL connection, schema validation, CRUD, and persistence after a backend restart using the dedicated app account.
-3. Replace single-admin Basic authentication with a managed identity solution or otherwise explicitly accept and mitigate the single-account limitations; require TLS end to end.
-4. Configure provider secrets, exact CORS origin, outbound database network rules, backups, and a restoration plan.
-5. Deploy only after explicit owner authorization, then verify HTTPS, health probe, authenticated CRUD, and persistent data on the actual service.
+Render stores `sync: false` values in the service configuration and prompts for them when a Blueprint is first created. Do not put secret values in `render.yaml`, Git, issues, or chat. See [Render environment variables and secrets](https://render.com/docs/configure-environment-variables) and the [Blueprint specification](https://render.com/docs/blueprint-spec).
 
-## CI
+The single service serves the dashboard at `/` and the protected API at `/api`. The frontend selects the same-origin API URL when hosted this way. In local development, `http://localhost:5500` continues to call `http://localhost:8080/api`. The backend listens on Render's `PORT` and binds to `0.0.0.0`.
 
-The repository includes [GitHub Actions CI](../.github/workflows/ci.yml), which runs Maven verification plus JavaScript syntax and utility tests on pushes to `main`, pull requests, and manual dispatches. This workflow definition does not itself prove that a GitHub-hosted run completed successfully; check the Actions page for a run result after publication.
+## After deployment
+
+Verify the service's actual Render URL, `GET /actuator/health`, the sign-in screen, and authenticated student CRUD. The health endpoint reports application health; it is not proof that MySQL data persists across redeploys. Verify persistence by creating a synthetic record, redeploying/restarting the web service, and retrieving the record afterward. Do not use real student data for smoke tests.
+
+The local screenshot error should disappear once Render has a valid `DB_URL`, matching credentials, a reachable MySQL service, and the `students` table. Do **not** try to fix missing JDBC metadata by setting `hibernate.dialect` manually; that can hide the missing connection configuration but cannot make the database reachable. If startup still fails, inspect the first `Communications link failure`, `Access denied`, DNS, or missing-table message below the Hibernate wrapper and correct that specific cause.
+
+## Remaining production considerations
+
+- This app uses one in-memory administrator account and HTTP Basic authentication. Render terminates HTTPS for the public web URL, but this is still a demo-grade access model: there is no user lifecycle, rate limiting, audit log, or per-user authorization. Do not use it for sensitive student records without a stronger identity and authorization design.
+- Configure backups and test restoration for the MySQL service. A persistent disk alone is not a backup strategy.
+- The Docker image is built in GitHub Actions. Successful CI verifies the build, not the Render environment, database connectivity, or a live deployment.
+- A free web-service plan may spin down; a persistent MySQL service with a disk may be billed. Confirm current plan limits and pricing before creating resources.
+
+## CI status
+
+GitHub Actions runs Maven verification, frontend checks, and a Docker build on pushes to `main`. Check the repository's [Actions page](https://github.com/Er-rahul3707/cognevance_student-management-system/actions) for the result corresponding to the commit you deploy.

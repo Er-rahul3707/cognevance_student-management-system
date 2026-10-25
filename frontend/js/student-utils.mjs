@@ -3,6 +3,11 @@ export function normalizeApiBaseUrl(value) {
   return base.replace(/\/+$/, '');
 }
 
+export function defaultApiBaseUrl(location) {
+  const localPreview = ['localhost', '127.0.0.1'].includes(location.hostname) && location.port === '5500';
+  return localPreview ? 'http://localhost:8080/api' : `${String(location.origin).replace(/\/+$/, '')}/api`;
+}
+
 export class SessionEpoch {
   #value = 0;
 

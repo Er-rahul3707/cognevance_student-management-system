@@ -79,7 +79,7 @@ In a second terminal from the repository root:
 python -m http.server 5500 --directory frontend
 ```
 
-Open [http://localhost:5500](http://localhost:5500). The API default is `http://localhost:8080/api`. If the API host changes, configure `window.STUDENT_API_BASE_URL` in `frontend/index.html` before the module script and allow the exact frontend origin in `CORS_ALLOWED_ORIGINS`; empty and wildcard origin lists are rejected. `GET http://localhost:8080/actuator/health` is an unauthenticated status-only host probe; student API paths still require the administrator credentials.
+Open [http://localhost:5500](http://localhost:5500). The local Python preview uses `http://localhost:8080/api`; when the frontend is served by the backend (as in the Render Docker Blueprint), it automatically uses same-origin `/api`. For a separately hosted frontend/API pair, configure `window.STUDENT_API_BASE_URL` in `frontend/index.html` before the module script and allow the exact frontend origin in `CORS_ALLOWED_ORIGINS`; empty and wildcard origin lists are rejected. `GET http://localhost:8080/actuator/health` is an unauthenticated status-only host probe; student API paths still require the administrator credentials.
 
 ## Configuration reference
 

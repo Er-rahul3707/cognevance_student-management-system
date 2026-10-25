@@ -1,12 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildStudentsUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl, SessionEpoch } from './student-utils.mjs';
+import { buildStudentsUrl, defaultApiBaseUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl, SessionEpoch } from './student-utils.mjs';
 
 test('normalizes API base URLs and encodes search terms', () => {
   assert.equal(normalizeApiBaseUrl(' https://api.example.test/v1/// '), 'https://api.example.test/v1');
   assert.equal(buildStudentsUrl('http://localhost:8080/api/', 'Asha Patel & Co'),
     'http://localhost:8080/api/students?q=Asha%20Patel%20%26%20Co');
   assert.equal(buildStudentsUrl('http://localhost:8080/api'), 'http://localhost:8080/api/students');
+});
+
+test('uses local API during Python preview and same-origin API when hosted', () => {
+  assert.equal(defaultApiBaseUrl({ hostname: 'localhost', port: '5500', origin: 'http://localhost:5500' }), 'http://localhost:8080/api');
+  assert.equal(defaultApiBaseUrl({ hostname: '127.0.0.1', port: '5500', origin: 'http://127.0.0.1:5500' }), 'http://localhost:8080/api');
+  assert.equal(defaultApiBaseUrl({ hostname: 'cogne.onrender.com', port: '', origin: 'https://cogne.onrender.com' }), 'https://cogne.onrender.com/api');
 });
 
 test('invalidating a session prevents pending work from exposing prior-session data', () => {

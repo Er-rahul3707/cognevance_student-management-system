@@ -147,7 +147,7 @@ node --test frontend/js/student-utils.test.mjs
 
 See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction between automated tests, live H2 API checks, browser checks, and MySQL integration status.
 
-**Verification (2026-10-25):** Maven verification passed (15 tests; package succeeded), Node syntax checks passed, and all 8 frontend utility tests passed. The real local UI was tested with the explicitly selected H2 profile: login, empty state, invalid email form validation, synthetic student create/list/search/course filter/details/edit/delete, logout, and rejected credentials. Browser console had no errors or warnings. A mobile-width overflow in the visually hidden table heading was fixed and the document now fits a 390px viewport; the wide student table remains scrollable within its wrapper. MySQL remains **not verified**: its service is running, but the project account previously received error 1045. See [TESTING.md](docs/TESTING.md) for the scope and evidence.
+**Verification (2026-10-25):** Maven verification passed (15 tests; package succeeded), Node syntax checks passed, and all 9 frontend utility tests passed. The real local UI was tested with the explicitly selected H2 profile: login, empty state, invalid email form validation, synthetic student create/list/search/course filter/details/edit/delete, logout, and rejected credentials. Browser console had no errors or warnings. A mobile-width overflow in the visually hidden table heading was fixed and the document now fits a 390px viewport; the wide student table remains scrollable within its wrapper. MySQL remains **not verified**: its service is running, but the project account previously received error 1045. See [TESTING.md](docs/TESTING.md) for the scope and evidence.
 
 ## Troubleshooting
 
@@ -164,7 +164,7 @@ See [docs/TESTING.md](docs/TESTING.md) for actual results and the distinction be
 
 ## Deployment preparation
 
-See [deployment readiness](docs/DEPLOYMENT.md) for current hosting constraints, environment configuration, and release checks. The project is not deployed and has no live URL. A GitHub Actions workflow is configured; its run status must be checked on GitHub separately.
+The root [`render.yaml`](render.yaml) defines a Render Docker web service that serves the UI and API on one origin. It prompts for DB and administrator values without storing secrets in Git. A reachable MySQL 8 service and initialized `students` table are still required; Render Postgres `DATABASE_URL` is not compatible with this MySQL application. Follow [Render deployment steps](docs/DEPLOYMENT.md) before creating resources. The project is not deployed and has no live URL.
 
 ## Screenshots
 

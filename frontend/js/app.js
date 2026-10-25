@@ -1,6 +1,6 @@
-import { buildStudentsUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl, SessionEpoch } from './student-utils.mjs';
+import { buildStudentsUrl, defaultApiBaseUrl, escapeHtml, filterAndSortStudents, formatDate, getDashboardStats, getInitials, normalizeApiBaseUrl, SessionEpoch } from './student-utils.mjs?v=4';
 
-const API_BASE_URL = normalizeApiBaseUrl(window.STUDENT_API_BASE_URL);
+const API_BASE_URL = normalizeApiBaseUrl(window.STUDENT_API_BASE_URL || defaultApiBaseUrl(window.location));
 const rows = document.getElementById('studentRows');
 const dialog = document.getElementById('studentDialog');
 const detailsDialog = document.getElementById('detailsDialog');

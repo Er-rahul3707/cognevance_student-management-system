@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f7fb"><meta name="description" content="Student directory and enrollment management dashboard.">
   <title>Students · Cognevance</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/styles.css?v=2">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 <body>
   <dialog id="loginDialog" aria-labelledby="loginTitle">
@@ -52,7 +52,6 @@
   </div></dialog>
   <dialog id="deleteDialog" aria-labelledby="deleteTitle"><div class="details-panel"><div class="dialog-head"><div><div class="eyebrow">CONFIRM ACTION</div><h2 id="deleteTitle">Delete student?</h2><p id="deleteMessage">This action cannot be undone.</p></div><button type="button" class="icon-button" id="closeDelete" aria-label="Cancel deletion">×</button></div><div class="dialog-error" id="deleteError" role="alert"></div><div class="dialog-actions"><button type="button" class="button button-outline" id="cancelDelete">Cancel</button><button type="button" class="button button-danger" id="confirmDelete">Delete student</button></div></div></dialog>
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
-  <!-- For a hosted API, set window.STUDENT_API_BASE_URL here before loading app.js. -->
-  <script>window.STUDENT_API_BASE_URL = window.STUDENT_API_BASE_URL || 'http://localhost:8080/api';</script>
-  <script type="module" src="js/app.js?v=2"></script>
+  <!-- Optional: set window.STUDENT_API_BASE_URL here before loading app.js to override the default. -->
+  <script type="module" src="js/app.js?v=4"></script>
 </body></html>

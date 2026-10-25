@@ -9,7 +9,7 @@ Verification for this working revision was performed on 2026-10-25. Commands wer
 | `mvn -f backend/pom.xml test` | **Passed** — 15 tests, 0 failures/errors/skips; Spring MockMvc tests use in-memory H2 |
 | `mvn -f backend/pom.xml package` | **Passed** — packaged successfully with Spring Boot 3.5.16; includes 15 backend tests |
 | Bundled Node syntax checks for `frontend/js/app.js` and `frontend/js/student-utils.mjs` | **Passed** |
-| Bundled Node `--test frontend/js/student-utils.test.mjs` | **Passed** — 8 tests, 0 failures; includes course filtering, sort modes, source-array immutability, and stale-session invalidation |
+| Bundled Node `--test frontend/js/student-utils.test.mjs` | **Passed** — 9 tests, 0 failures; includes local and same-origin deployment API selection, course filtering, sort modes, source-array immutability, and stale-session invalidation |
 | `git diff --check` | **Passed** after final edits |
 | npm scripts | Not runnable because npm is not on PATH; equivalent Node commands were used directly |
 

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: cognevance-student-management
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        value: student_app
+      - key: DB_PASSWORD
+        sync: false
+      - key: APP_AUTH_USERNAME
+        sync: false
+      - key: APP_AUTH_PASSWORD
+        sync: false
